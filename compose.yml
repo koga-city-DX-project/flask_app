@@ -1,5 +1,5 @@
 services:
-  app:
+  appaa:
     build:
       context: .
       dockerfile: Dockerfile
@@ -7,6 +7,6 @@ services:
     ports:
       - "5000:5000"
     volumes:
-      - .:/usr/src/app
+      - .:/usr/src/
 
 

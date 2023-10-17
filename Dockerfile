@@ -1,8 +1,7 @@
 FROM python:3.9
 
-WORKDIR /usr/src/app
-ENV FLASK_APP=app
-COPY /app/requirements.txt ./
+WORKDIR /usr/src
+COPY /requirements.txt ./
 
 # upgrade pip
 RUN pip install --upgrade pip
