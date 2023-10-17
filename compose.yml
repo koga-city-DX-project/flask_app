@@ -1,0 +1,12 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    tty: true
+    ports:
+      - "5000:5000"
+    volumes:
+      - .:/usr/src/app
+
+
