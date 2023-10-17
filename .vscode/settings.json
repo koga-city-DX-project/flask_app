@@ -27,6 +27,5 @@
         "--max-complexity=10",
     ],
     "mypy-type-checker.args": [
-
     ],
 }
