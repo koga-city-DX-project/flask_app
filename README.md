@@ -8,3 +8,7 @@ pip freeze > requirements.txt
 
 空でcommit
 git commit --allow-empty-message -m ''
+
+
+
+
