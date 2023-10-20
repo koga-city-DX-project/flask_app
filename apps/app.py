@@ -4,10 +4,10 @@ app = Flask(__name__)
 
 
 @app.route("/")
-def index() -> str:
+def index():
     return render_template("index.html")
 
 
 @app.route("/name/<name>")
-def show_name(name) -> str:
+def show_name(name):
     return render_template("name.html", name=name)
