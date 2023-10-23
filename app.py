@@ -1,41 +1,50 @@
 import dash
+import dash_auth
 import dash_bootstrap_components as dbc
+import dash_mantine_components as dmc
 import numpy as np
 import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
+from dash.exceptions import PreventUpdate
+from dash_iconify import DashIconify
 
 df = pd.read_csv("data/data_sample.csv")
 vars_cat = [var for var in df.columns if var.startswith("cat")]
 vars_cont = [var for var in df.columns if var.startswith("cont")]
 
 app = dash.Dash(external_stylesheets=[dbc.themes.FLATLY])
+passPair = {"User1": "AAA", "User2": "BBB"}
+auth = dash_auth.BasicAuth(app, passPair)
 
-# pie chart
-pie = df.groupby("target").count()["id"] / len(df)
-
-fig_pie = px.pie(
-    pie.reset_index(),
-    values="id",
-    names="target",
-    hole=0.3,
-    color_discrete_sequence=["#30b344", "#0c4f16"],
+sidebarToggleBtn = dmc.Button(
+    children=[
+        DashIconify(icon="ci:hamburger-lg", width=24, height=24, color="#c2c7d0")
+    ],
+    variant="subtle",
+    p=1,
+    id="sidebar-button",
 )
 
-
-fig_pie.update_layout(
-    width=320,
-    height=250,
-    margin=dict(l=30, r=10, t=10, b=10),
-    paper_bgcolor="rgba(0,0,0,0)",
-)
 
 sidebar = html.Div(
-    [
+    children=[
         dbc.Row(
-            [html.H5("Settings", style={"margin-top": "12px", "margin-left": "24px"})],
+            [
+                dbc.Col(
+                    [
+                        html.H5(
+                            "Settings",
+                            style={
+                                "margin-top": "12px",
+                                "margin-left": "24px",
+                            },
+                        ),
+                    ],
+                ),
+            ],
             style={"height": "5vh"},
             className="bg-primary text-white font-italic",
         ),
@@ -45,7 +54,10 @@ sidebar = html.Div(
                     [
                         html.P(
                             "カテゴリー変数",
-                            style={"margin-top": "8px", "margin-bottom": "4px"},
+                            style={
+                                "margin-top": "8px",
+                                "margin-bottom": "4px",
+                            },
                             className="font-weight-bold",
                         ),
                         dcc.Dropdown(
@@ -53,7 +65,7 @@ sidebar = html.Div(
                             multi=False,
                             value="cat0",
                             options=[{"label": x, "value": x} for x in vars_cat],
-                            style={"width": "320px"},
+                            style={"width": "95%"},
                         ),
                         html.P(
                             "連続変数",
@@ -65,7 +77,7 @@ sidebar = html.Div(
                             multi=False,
                             value="cont0",
                             options=[{"label": x, "value": x} for x in vars_cont],
-                            style={"width": "320px"},
+                            style={"width": "95%"},
                         ),
                         html.P(
                             "相関行列の連続変数",
@@ -79,12 +91,12 @@ sidebar = html.Div(
                             options=[
                                 {"label": x, "value": x} for x in vars_cont + ["target"]
                             ],
-                            style={"width": "320px"},
+                            style={"width": "95%"},
                         ),
                         html.Button(
                             id="my-button",
                             n_clicks=0,
-                            children="適応する",
+                            children="設定の適応",
                             style={"margin-top": "16px"},
                             className="bg-dark text-white",
                         ),
@@ -94,36 +106,50 @@ sidebar = html.Div(
             ],
             style={"height": "50vh", "margin": "8px"},
         ),
-    ]
+    ],
 )
 
 content = html.Div(
     [
         dbc.Row(
             [
+                dbc.Col(sidebarToggleBtn, style={"margin-top": "1vh"}),
                 dbc.Col(
                     [
-                        html.Div(
-                            [
-                                html.P(id="bar-title", className="font-weight-bold"),
-                                dcc.Graph(id="bar-chart", className="bg-light"),
-                            ]
-                        )
-                    ]
-                ),
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.P(id="dist-title", className="font-weight-bold"),
-                                dcc.Graph(id="dist-chart", className="bg-light"),
-                            ]
+                        html.H5(
+                            "タイトルタイトル",
+                            style={
+                                "margin-top": "12px",
+                            },
                         )
                     ]
                 ),
             ],
+            style={"height": "5vh"},
+            className="bg-primary bg-opacity-50 text-white font-italic",
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.P(id="bar-title", className="font-weight-bold"),
+                            dcc.Graph(id="bar-chart", className="bg-light"),
+                        ]
+                    ),
+                    width=6,
+                ),
+                dbc.Col(
+                    html.Div(
+                        [
+                            html.P(id="dist-title", className="font-weight-bold"),
+                            dcc.Graph(id="dist-chart", className="bg-light"),
+                        ]
+                    ),
+                    width=6,
+                ),
+            ],
             style={
-                "height": "50vh",
                 "margin-top": "16px",
                 "margin-left": "8px",
                 "margin-bottom": "8px",
@@ -132,35 +158,41 @@ content = html.Div(
         ),
         dbc.Row(
             [
-                dbc.Col(
+                html.Div(
                     [
-                        html.Div(
-                            [
-                                html.P(
-                                    "ヒートマップ",
-                                    className="font-weight-bold",
-                                ),
-                                dcc.Graph(id="corr-chart", className="bg-light"),
-                            ]
-                        )
+                        html.P(
+                            "ヒートマップ",
+                            className="font-weight-bold",
+                        ),
+                        dcc.Graph(id="corr-chart", className="bg-light"),
                     ]
                 )
             ],
-            style={"height": "50vh", "margin": "8px"},
+            style={"margin": "8px"},
         ),
-    ]
+    ],
 )
 
 app.layout = dbc.Container(
     [
         dbc.Row(
-            [dbc.Col(sidebar, width=3, className="bg-light"), dbc.Col(content, width=9)]
+            [
+                dbc.Col(
+                    sidebar,
+                    width=3,
+                    className="bg-light",
+                    id="sidebar",
+                    style={"marginLeft": "0px"},
+                ),
+                dbc.Col(content, id="content", style={"marginLeft": "0px"}, width=9),
+            ],
         ),
     ],
     fluid=True,
 )
 
 
+# カテゴリー変数の分布の変数選択処理
 @app.callback(
     Output("bar-chart", "figure"),
     Output("bar-title", "children"),
@@ -180,8 +212,7 @@ def update_bar(n_clicks, cat_pick):
     )
 
     fig_bar.update_layout(
-        width=500,
-        height=340,
+        autosize=True,
         margin=dict(l=40, r=20, t=20, b=30),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -196,6 +227,7 @@ def update_bar(n_clicks, cat_pick):
     return fig_bar, title_bar
 
 
+# 連続変数の分布の変数選択処理
 @app.callback(
     Output("dist-chart", "figure"),
     Output("dist-title", "children"),
@@ -214,8 +246,7 @@ def update_dist(n_clicks, cont_pick):
     )
 
     fig_dist.update_layout(
-        width=500,
-        height=340,
+        autosize=True,
         margin=dict(t=20, b=20, l=40, r=20),
         paper_bgcolor="rgba(0,0,0,0)",
         plot_bgcolor="rgba(0,0,0,0)",
@@ -227,6 +258,7 @@ def update_dist(n_clicks, cont_pick):
     return fig_dist, title_dist
 
 
+# ヒートマップの変数選択処理
 @app.callback(
     Output("corr-chart", "figure"),
     Input("my-button", "n_clicks"),
@@ -248,8 +280,7 @@ def update_corr(n_clicks, corr_pick):
     )
 
     fig_corr.update_layout(
-        width=1040,
-        height=300,
+        autosize=True,
         margin=dict(l=40, r=20, t=20, b=20),
         paper_bgcolor="rgba(0,0,0,0)",
     )
@@ -257,5 +288,20 @@ def update_corr(n_clicks, corr_pick):
     return fig_corr
 
 
+@app.callback(
+    Output("sidebar", "style"),
+    Output("content", "style"),
+    Input("sidebar-button", "n_clicks"),
+    prevent_initial_call=True,
+)
+def toggle_sidebar(n_clicks):
+    if n_clicks:
+        if n_clicks % 2 == 1:  # toggle on odd clicks
+            return {"display": "none"}, {"marginLeft": "0px", "width": "100%"}
+        else:  # toggle on even clicks
+            return {"marginLeft": "0px"}, {"marginLeft": "0px", "width": "75%"}
+    raise PreventUpdate
+
+
 if __name__ == "__main__":
-    app.run_server(debug=True, port=1234)
+    app.run_server(port=5000, debug=True, host="0.0.0.0", use_reloader=True)
