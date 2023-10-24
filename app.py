@@ -1,7 +1,11 @@
+import glob
+import os
+
 import dash
 import dash_auth
 import dash_bootstrap_components as dbc
 import dash_mantine_components as dmc
+import dash_uploader as du
 import numpy as np
 import pandas as pd
 import plotly.express as px
@@ -12,24 +16,89 @@ from dash.exceptions import PreventUpdate
 from dash_iconify import DashIconify
 
 df = pd.read_csv("data/data_sample.csv")
+uploaded_files_dict = {}
+
 vars_cat = [var for var in df.columns if var.startswith("cat")]
 vars_cont = [var for var in df.columns if var.startswith("cont")]
 
 app = dash.Dash(external_stylesheets=[dbc.themes.FLATLY])
+app.title = "テストページ"
 passPair = {"User1": "AAA", "User2": "BBB"}
 auth = dash_auth.BasicAuth(app, passPair)
+du.configure_upload(app, r"/usr/src/data")
+
+
+# アプリケーションの初期化時にdataディレクトリをスキャン
+for filepath in glob.glob("data/*/*"):
+    filename = os.path.basename(filepath)
+    uploaded_files_dict[filename] = filepath
 
 sidebarToggleBtn = dmc.Button(
     children=[
-        DashIconify(icon="ci:hamburger-lg", width=24, height=24, color="#c2c7d0")
+        DashIconify(icon="ci:hamburger-lg", width=32, height=32, color="#c2c7d0")
     ],
     variant="subtle",
     p=1,
     id="sidebar-button",
 )
 
-
 sidebar = html.Div(
+    children=[
+        dbc.Row(
+            [
+                dbc.Col(
+                    [
+                        html.H5(
+                            "データ分析ツール",
+                            style={
+                                "margin-top": "12px",
+                                "margin-left": "24px",
+                            },
+                        ),
+                    ],
+                ),
+            ],
+            style={"height": "5vh"},
+            className="bg-primary text-white font-italic",
+        ),
+        dbc.Row(
+            [
+                dbc.Container(
+                    [
+                        html.H4("Upload with Dash-uploader"),
+                        du.Upload(
+                            id="input",
+                            max_file_size=1800,
+                            filetypes=["csv"],
+                            max_files=1,
+                            cancel_button=True,
+                        ),
+                        html.P(id="input_info"),
+                        html.Br(),
+                        dcc.Dropdown(
+                            id="uploaded-files-dropdown",
+                            options=[
+                                {"label": i, "value": i}
+                                for i in uploaded_files_dict.keys()
+                            ],  # アップロードされたファイルのリストがここに入ります
+                            placeholder="Select a file",
+                        ),
+                        html.Button(
+                            id="file-select-button",
+                            n_clicks=0,
+                            children="ファイル変更",
+                            style={"margin-top": "16px"},
+                            className="bg-dark text-white",
+                        ),
+                    ]
+                )
+            ],
+            style={"height": "50vh", "margin": "8px"},
+        ),
+    ],
+)
+
+settings = html.Div(
     children=[
         dbc.Row(
             [
@@ -96,7 +165,7 @@ sidebar = html.Div(
                         html.Button(
                             id="my-button",
                             n_clicks=0,
-                            children="設定の適応",
+                            children="設定変更",
                             style={"margin-top": "16px"},
                             className="bg-dark text-white",
                         ),
@@ -106,27 +175,50 @@ sidebar = html.Div(
             ],
             style={"height": "50vh", "margin": "8px"},
         ),
-    ],
+    ]
 )
 
 content = html.Div(
     [
         dbc.Row(
             [
-                dbc.Col(sidebarToggleBtn, style={"margin-top": "1vh"}),
+                dbc.Col(
+                    sidebarToggleBtn,
+                    width=1,
+                    style={
+                        "margin": "auto",
+                    },
+                ),
                 dbc.Col(
                     [
                         html.H5(
-                            "タイトルタイトル",
-                            style={
-                                "margin-top": "12px",
-                            },
+                            "タイトルタイトルタイトルタイトル",
                         )
-                    ]
+                    ],
+                    width=9,
+                    style={
+                        "margin": "auto",
+                    },
+                ),
+                dbc.Col(
+                    dbc.DropdownMenu(
+                        children=[
+                            dbc.DropdownMenuItem("More pages", header=True),
+                            dbc.DropdownMenuItem("Page 2", href="#"),
+                            dbc.DropdownMenuItem("Page 3", href="#"),
+                        ],
+                        label="分析方法の変更",
+                    ),
+                    width=2,
+                    style={
+                        "display": "flex",
+                        "justify-content": "flex-end",
+                        "margin": "auto",
+                    },
                 ),
             ],
             style={"height": "5vh"},
-            className="bg-primary bg-opacity-50 text-white font-italic",
+            className="bg-primary text-white font-italic",
         ),
         dbc.Row(
             [
@@ -168,7 +260,7 @@ content = html.Div(
                     ]
                 )
             ],
-            style={"margin": "8px"},
+            style={"margin": "8px", "height": "100vh"},
         ),
     ],
 )
@@ -177,14 +269,27 @@ app.layout = dbc.Container(
     [
         dbc.Row(
             [
+                dcc.Location(id="url", refresh=False),
                 dbc.Col(
-                    sidebar,
+                    [
+                        dbc.Row(sidebar),
+                        dbc.Row(settings),
+                    ],
                     width=3,
+                    style={"marginLeft": "0px"},
                     className="bg-light",
                     id="sidebar",
-                    style={"marginLeft": "0px"},
                 ),
-                dbc.Col(content, id="content", style={"marginLeft": "0px"}, width=9),
+                dbc.Col(
+                    content,
+                    id="content",
+                    style={
+                        "marginLeft": "0px",
+                        "transition": "margin-left 0.3s ease-in-out",
+                    },
+                    width=9,
+                ),
+                html.Div(id="page-content"),
             ],
         ),
     ],
@@ -196,10 +301,10 @@ app.layout = dbc.Container(
 @app.callback(
     Output("bar-chart", "figure"),
     Output("bar-title", "children"),
-    Input("my-button", "n_clicks"),
+    [Input("my-button", "n_clicks"), Input("file-select-button", "n_clicks")],
     State("my-cat-picker", "value"),
 )
-def update_bar(n_clicks, cat_pick):
+def update_bar(n_clicks, file_n_clicks, cat_pick):
     bar_df = df.groupby(["target", cat_pick]).count()["id"].reset_index()
     bar_df["target"] = bar_df["target"].replace({0: "target=0", 1: "target=1"})
 
@@ -231,10 +336,10 @@ def update_bar(n_clicks, cat_pick):
 @app.callback(
     Output("dist-chart", "figure"),
     Output("dist-title", "children"),
-    Input("my-button", "n_clicks"),
+    [Input("my-button", "n_clicks"), Input("file-select-button", "n_clicks")],
     State("my-cont-picker", "value"),
 )
-def update_dist(n_clicks, cont_pick):
+def update_dist(n_clicks, file_n_clicks, cont_pick):
     num0 = df[df["target"] == 0][cont_pick].values.tolist()
     num1 = df[df["target"] == 1][cont_pick].values.tolist()
 
@@ -261,10 +366,10 @@ def update_dist(n_clicks, cont_pick):
 # ヒートマップの変数選択処理
 @app.callback(
     Output("corr-chart", "figure"),
-    Input("my-button", "n_clicks"),
+    [Input("my-button", "n_clicks"), Input("file-select-button", "n_clicks")],
     State("my-corr-picker", "value"),
 )
-def update_corr(n_clicks, corr_pick):
+def update_corr(n_clicks, file_n_clicks, corr_pick):
     df_corr = df[corr_pick].corr()
     x = list(df_corr.columns)
     y = list(df_corr.index)
@@ -301,6 +406,40 @@ def toggle_sidebar(n_clicks):
         else:  # toggle on even clicks
             return {"marginLeft": "0px"}, {"marginLeft": "0px", "width": "75%"}
     raise PreventUpdate
+
+
+@du.callback(
+    output=Output("uploaded-files-dropdown", "options"),
+    id="input",
+)
+def callback_on_completion(status: du.UploadStatus):
+    for x in status.uploaded_files:
+        filename = os.path.basename(str(x))
+        uploaded_files_dict[filename] = str(x)
+    uploaded_files = list(uploaded_files_dict.keys())
+    return [{"label": i, "value": i} for i in uploaded_files]
+
+
+@app.callback(
+    Output("file-select-button", "n_clicks"),
+    Input("uploaded-files-dropdown", "value"),
+)
+def reset_button_on_new_file(value):
+    return 0
+
+
+@app.callback(
+    Output(
+        "file-select-button", "children"
+    ),  # ダミーの出力を 'my-button' の 'children' プロパティに変更
+    Input("file-select-button", "n_clicks"),
+    State("uploaded-files-dropdown", "value"),
+)
+def load_new_file(n_clicks, value):
+    if n_clicks > 0:
+        global df
+        df = pd.read_csv(uploaded_files_dict[value])
+    return "ファイル変更"
 
 
 if __name__ == "__main__":
