@@ -1,5 +1,5 @@
 ansi2html==1.8.0
-black==23.9.1
+black==22.8.0
 blinker==1.6.3
 certifi==2023.7.22
 charset-normalizer==3.3.1
@@ -26,7 +26,7 @@ mypy==1.6.0
 mypy-extensions==1.0.0
 nest-asyncio==1.5.8
 numpy==1.26.1
-packaging==23.2
+packaging==21.3
 pandas==2.1.1
 pathspec==0.11.2
 platformdirs==3.11.0
