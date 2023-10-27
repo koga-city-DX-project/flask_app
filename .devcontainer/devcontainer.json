@@ -19,7 +19,10 @@
 				"ms-python.mypy-type-checker",
 				"ms-python.isort",
 				"ms-python.black-formatter",
-				"ms-python.flake8"
+				"ms-python.flake8",
+				"ionutvmi.path-autocomplete",
+				"ecmel.vscode-html-css",
+				"mrmlnc.vscode-csscomb"
 			]
 		}
 	}

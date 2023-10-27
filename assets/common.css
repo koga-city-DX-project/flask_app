@@ -1,0 +1,24 @@
+h5{
+    margin-top: 1vh;
+    margin-left: 2vw;
+    font-size: 1vw;
+}
+
+.sidebarToggleBtn{
+    margin: auto;
+}
+
+.topMenu{
+    height: 5vh;
+}
+
+.title{
+    margin:  auto;
+}
+
+.changePageDropDown{
+    display:flex;
+    justify-content:flex-end;
+    margin:auto;
+    width: 2;
+}

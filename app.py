@@ -50,16 +50,11 @@ sidebar = html.Div(
                     [
                         html.H5(
                             "データ分析ツール",
-                            style={
-                                "margin-top": "12px",
-                                "margin-left": "24px",
-                            },
                         ),
                     ],
                 ),
             ],
-            style={"height": "5vh"},
-            className="bg-primary text-white font-italic",
+            className="bg-primary text-white font-italic topMenu",
         ),
         dbc.Row(
             [
@@ -90,6 +85,7 @@ sidebar = html.Div(
                             style={"margin-top": "16px"},
                             className="bg-dark text-white",
                         ),
+                        html.Hr(),
                     ]
                 )
             ],
@@ -103,19 +99,18 @@ settings = html.Div(
         dbc.Row(
             [
                 dbc.Col(
-                    [
-                        html.H5(
-                            "Settings",
-                            style={
-                                "margin-top": "12px",
-                                "margin-left": "24px",
-                            },
-                        ),
-                    ],
+                    sidebarToggleBtn,
+                    width=1,
+                    className="sidebarToggleBtn",
+                ),
+                dbc.Col(
+                    html.H5(
+                        "Settings",
+                    ),
+                    width=11,
                 ),
             ],
-            style={"height": "5vh"},
-            className="bg-primary text-white font-italic",
+            className="bg-primary text-white font-italic topMenu",
         ),
         dbc.Row(
             [
@@ -183,22 +178,12 @@ content = html.Div(
         dbc.Row(
             [
                 dbc.Col(
-                    sidebarToggleBtn,
-                    width=1,
-                    style={
-                        "margin": "auto",
-                    },
-                ),
-                dbc.Col(
                     [
                         html.H5(
                             "タイトルタイトルタイトルタイトル",
                         )
                     ],
-                    width=9,
-                    style={
-                        "margin": "auto",
-                    },
+                    className="title",
                 ),
                 dbc.Col(
                     dbc.DropdownMenu(
@@ -209,16 +194,10 @@ content = html.Div(
                         ],
                         label="分析方法の変更",
                     ),
-                    width=2,
-                    style={
-                        "display": "flex",
-                        "justify-content": "flex-end",
-                        "margin": "auto",
-                    },
+                    className="changePageDropDown",
                 ),
             ],
-            style={"height": "5vh"},
-            className="bg-primary text-white font-italic",
+            className="bg-primary text-white font-italic topMenu",
         ),
         dbc.Row(
             [
@@ -273,24 +252,26 @@ app.layout = dbc.Container(
                 dbc.Col(
                     [
                         dbc.Row(sidebar),
-                        dbc.Row(settings),
                     ],
-                    width=3,
-                    style={"marginLeft": "0px"},
                     className="bg-light",
+                    width=2,
                     id="sidebar",
+                ),
+                dbc.Col(
+                    [settings],
+                    className="bg-light",
+                    width=2,
                 ),
                 dbc.Col(
                     content,
                     id="content",
                     style={
-                        "marginLeft": "0px",
                         "transition": "margin-left 0.3s ease-in-out",
                     },
-                    width=9,
+                    width=8,
                 ),
-                html.Div(id="page-content"),
             ],
+            justify="start",
         ),
     ],
     fluid=True,
@@ -402,9 +383,23 @@ def update_corr(n_clicks, file_n_clicks, corr_pick):
 def toggle_sidebar(n_clicks):
     if n_clicks:
         if n_clicks % 2 == 1:  # toggle on odd clicks
-            return {"display": "none"}, {"marginLeft": "0px", "width": "100%"}
+            return (
+                {"display": "none"},
+                {
+                    "marginLeft": "0px",
+                    "transition": "margin-left 0.3s ease-in-out",
+                    "width": "83.33333%",
+                },
+            )
         else:  # toggle on even clicks
-            return {"marginLeft": "0px"}, {"marginLeft": "0px", "width": "75%"}
+            return (
+                {"marginLeft": "0px"},
+                {
+                    "marginLeft": "0px",
+                    "transition": "margin-left 0.3s ease-in-out",
+                    "width": "66.66667%",
+                },
+            )
     raise PreventUpdate
 
 

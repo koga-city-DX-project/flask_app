@@ -1,4 +1,5 @@
 {
+  "csscomb.formatOnSave": true,
   "editor.minimap.enabled": false, // ミニマップを非表示にする
   "editor.renderControlCharacters": true, // 制御文字を表示する
   "editor.suggestSelection": "first", // サジェスト一覧の初期表示項目設定
@@ -14,6 +15,7 @@
   "files.autoGuessEncoding": true, // ファイルの自動エンコードを実施
   "window.zoomLevel": -2, // 画面全体の表示サイズはデフォルト
   "editor.bracketPairColorization.enabled": true, // 括弧の対応を色付ける
+  "python.analysis.importFormat": "relative",
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
