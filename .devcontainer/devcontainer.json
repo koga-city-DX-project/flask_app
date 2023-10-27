@@ -16,13 +16,13 @@
 				"streetsidesoftware.code-spell-checker",
 				"esbenp.prettier-vscode",
 				"ms-python.vscode-pylance",
-				"ms-python.mypy-type-checker",
 				"ms-python.isort",
 				"ms-python.black-formatter",
 				"ms-python.flake8",
 				"ionutvmi.path-autocomplete",
 				"ecmel.vscode-html-css",
-				"mrmlnc.vscode-csscomb"
+				"mrmlnc.vscode-csscomb",
+				"matangover.mypy"
 			]
 		}
 	}

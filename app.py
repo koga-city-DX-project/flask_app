@@ -18,6 +18,7 @@ from dash_iconify import DashIconify
 df = pd.read_csv("data/data_sample.csv")
 uploaded_files_dict = {}
 
+
 vars_cat = [var for var in df.columns if var.startswith("cat")]
 vars_cont = [var for var in df.columns if var.startswith("cont")]
 
