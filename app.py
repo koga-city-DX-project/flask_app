@@ -4,7 +4,6 @@ import os
 import dash
 import dash_auth
 import dash_bootstrap_components as dbc
-import dash_mantine_components as dmc
 import dash_uploader as du
 import numpy as np
 import pandas as pd
@@ -13,7 +12,6 @@ import plotly.figure_factory as ff
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
-from dash_iconify import DashIconify
 
 df = pd.read_csv("data/data_sample.csv")
 uploaded_files_dict = {}
@@ -22,7 +20,13 @@ uploaded_files_dict = {}
 vars_cat = [var for var in df.columns if var.startswith("cat")]
 vars_cont = [var for var in df.columns if var.startswith("cont")]
 
-app = dash.Dash(external_stylesheets=[dbc.themes.FLATLY])
+
+external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
+app = dash.Dash(
+    __name__,
+    suppress_callback_exceptions=True,
+    external_stylesheets=external_stylesheets,
+)
 app.title = "テストページ"
 passPair = {"User1": "AAA", "User2": "BBB"}
 auth = dash_auth.BasicAuth(app, passPair)
@@ -34,12 +38,10 @@ for filepath in glob.glob("data/*/*"):
     filename = os.path.basename(filepath)
     uploaded_files_dict[filename] = filepath
 
-sidebarToggleBtn = dmc.Button(
-    children=[
-        DashIconify(icon="ci:hamburger-lg", width=32, height=32, color="#c2c7d0")
-    ],
-    variant="subtle",
-    p=1,
+sidebarToggleBtn = dbc.Button(
+    children=[html.I(className="fas fa-bars", style={"color": "#c2c7d0"})],
+    color="secondary",
+    className=" opacity-50",
     id="sidebar-button",
 )
 
@@ -49,7 +51,7 @@ sidebar = html.Div(
             [
                 dbc.Col(
                     [
-                        html.H5(
+                        html.H6(
                             "データ分析ツール",
                         ),
                     ],
@@ -83,14 +85,13 @@ sidebar = html.Div(
                             id="file-select-button",
                             n_clicks=0,
                             children="ファイル変更",
-                            style={"margin-top": "16px"},
+                            style={"margin-top": "3vh"},
                             className="bg-dark text-white",
                         ),
                         html.Hr(),
                     ]
                 )
             ],
-            style={"height": "50vh", "margin": "8px"},
         ),
     ],
 )
@@ -101,17 +102,16 @@ settings = html.Div(
             [
                 dbc.Col(
                     sidebarToggleBtn,
-                    width=1,
-                    className="sidebarToggleBtn",
+                    className="col-2",
                 ),
                 dbc.Col(
-                    html.H5(
+                    html.H6(
                         "Settings",
                     ),
-                    width=11,
+                    class_name="col-10",
                 ),
             ],
-            className="bg-primary text-white font-italic topMenu",
+            className="bg-primary text-white font-italic justify-content-start topMenu",
         ),
         dbc.Row(
             [
@@ -181,24 +181,28 @@ content = html.Div(
                 dbc.Col(
                     [
                         html.H5(
-                            "タイトルタイトルタイトルタイトル",
+                            "タイトルタイトル",
                         )
                     ],
                     className="title",
                 ),
                 dbc.Col(
-                    dbc.DropdownMenu(
-                        children=[
-                            dbc.DropdownMenuItem("More pages", header=True),
-                            dbc.DropdownMenuItem("Page 2", href="#"),
-                            dbc.DropdownMenuItem("Page 3", href="#"),
-                        ],
-                        label="分析方法の変更",
-                    ),
-                    className="changePageDropDown",
+                    [
+                        dbc.DropdownMenu(
+                            children=[
+                                dbc.DropdownMenuItem("More pages", header=True),
+                                dbc.DropdownMenuItem("Page 2", href="#"),
+                                dbc.DropdownMenuItem("Page 3", href="#"),
+                            ],
+                            label="分析方法の変更",
+                            className="changePageDropDown",
+                            color="secondary",
+                            toggleClassName="fst-italic border border-dark opacity-80",
+                        ),
+                    ],
                 ),
             ],
-            className="bg-primary text-white font-italic topMenu",
+            className="bg-primary text-white font-italic topMenu ",
         ),
         dbc.Row(
             [
@@ -222,10 +226,7 @@ content = html.Div(
                 ),
             ],
             style={
-                "margin-top": "16px",
-                "margin-left": "8px",
-                "margin-bottom": "8px",
-                "margin-right": "8px",
+                "margin": "2vh 1vw 1vh 1vw",
             },
         ),
         dbc.Row(

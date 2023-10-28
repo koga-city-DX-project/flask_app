@@ -1,24 +1,21 @@
-h5 {
-    font-size: 1vw;
-    margin-left: 2vw;
-    margin-top: 1vh;
+h5, h6 {
+    margin: 8px 0 0 5px;
+    overflow: hidden;
 }
+
 
 .sidebarToggleBtn {
-    margin: auto;
+    margin: 0;
 }
+
+
 
 .topMenu {
-    height: 5vh;
-}
-
-.title {
-    margin: auto;
+    height: 40px;
 }
 
 .changePageDropDown {
     display: flex;
     justify-content: flex-end;
-    margin: auto;
-    width: 2;
+    margin-top: 1px;
 }
