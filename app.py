@@ -40,13 +40,13 @@ for filepath in glob.glob("data/*/*"):
 
 sidebarToggleBtn = dbc.Button(
     children=[html.I(className="fas fa-bars", style={"color": "#c2c7d0"})],
-    color="secondary",
-    className=" opacity-50",
+    color="dark",
+    className="opacity-50",
     id="sidebar-button",
 )
 
 sidebar = html.Div(
-    children=[
+    [
         dbc.Row(
             [
                 dbc.Col(
@@ -61,36 +61,34 @@ sidebar = html.Div(
         ),
         dbc.Row(
             [
-                dbc.Container(
-                    [
-                        html.H4("Upload with Dash-uploader"),
-                        du.Upload(
-                            id="input",
-                            max_file_size=1800,
-                            filetypes=["csv"],
-                            max_files=1,
-                            cancel_button=True,
-                        ),
-                        html.P(id="input_info"),
-                        html.Br(),
-                        dcc.Dropdown(
-                            id="uploaded-files-dropdown",
-                            options=[
-                                {"label": i, "value": i}
-                                for i in uploaded_files_dict.keys()
-                            ],  # アップロードされたファイルのリストがここに入ります
-                            placeholder="Select a file",
-                        ),
-                        html.Button(
-                            id="file-select-button",
-                            n_clicks=0,
-                            children="ファイル変更",
-                            style={"margin-top": "3vh"},
-                            className="bg-dark text-white",
-                        ),
-                        html.Hr(),
-                    ]
-                )
+                html.H4("Upload with Dash-uploader"),
+                du.Upload(
+                    text="ここにファイルをドラッグ＆ドロップするか、ファイルを選択してください",
+                    id="input",
+                    max_file_size=1800,
+                    filetypes=["csv"],
+                    max_files=1,
+                    cancel_button=True,
+                ),
+                html.P(id="input_info"),
+                html.Br(),
+                dcc.Dropdown(
+                    id="uploaded-files-dropdown",
+                    options=[
+                        {"label": i, "value": i} for i in uploaded_files_dict.keys()
+                    ],  # アップロードされたファイルのリストがここに入ります
+                    value=next(iter(uploaded_files_dict.keys())),
+                    placeholder="Select a file",
+                    style={"width": "100%"},
+                ),
+                html.Button(
+                    id="file-select-button",
+                    n_clicks=0,
+                    children="ファイル変更",
+                    style={"margin-top": "3vh"},
+                    className="bg-dark text-white",
+                ),
+                html.Hr(),
             ],
         ),
     ],
@@ -100,15 +98,17 @@ settings = html.Div(
     children=[
         dbc.Row(
             [
+                dbc.Col(sidebarToggleBtn, className="col-2", id="setting_Col"),
                 dbc.Col(
-                    sidebarToggleBtn,
-                    className="col-2",
-                ),
-                dbc.Col(
-                    html.H6(
-                        "Settings",
+                    html.Div(
+                        [
+                            html.H6(
+                                "Settings",
+                            ),
+                        ],
+                        className="align-items-center",
                     ),
-                    class_name="col-10",
+                    className="col-10",
                 ),
             ],
             className="bg-primary text-white font-italic justify-content-start topMenu",
@@ -180,11 +180,15 @@ content = html.Div(
             [
                 dbc.Col(
                     [
-                        html.H5(
-                            "タイトルタイトル",
+                        html.Div(
+                            [
+                                html.H6(
+                                    "タイトルタイトル",
+                                )
+                            ],
+                            className="align-items-center",
                         )
                     ],
-                    className="title",
                 ),
                 dbc.Col(
                     [

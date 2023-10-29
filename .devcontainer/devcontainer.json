@@ -22,7 +22,8 @@
 				"ionutvmi.path-autocomplete",
 				"ecmel.vscode-html-css",
 				"mrmlnc.vscode-csscomb",
-				"matangover.mypy"
+				"matangover.mypy",
+				"mechatroner.rainbow-csv"
 			]
 		}
 	}
