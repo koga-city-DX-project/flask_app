@@ -59,7 +59,6 @@ sidebar = html.Div(
         ),
         dbc.Row(
             [
-                html.H4("Upload with Dash-uploader"),
                 du.Upload(
                     text="ここにファイルをドラッグ＆ドロップするか、ファイルを選択してください",
                     id="input",
@@ -81,7 +80,7 @@ sidebar = html.Div(
                     id="file-select-button",
                     n_clicks=0,
                     children="ファイル変更",
-                    style={"margin-top": "3vh"},
+                    style={"margin": "3vh 0 3vh 0"},
                     className="bg-dark text-white",
                 ),
                 html.Hr(),
@@ -93,11 +92,13 @@ sidebar = html.Div(
                 html.Button(
                     "Download Data",
                     id="download-button",
-                    style={"margin-top": "3vh"},
+                    style={"margin": "3vh 0 3vh 0"},
                     className="bg-dark text-white",
                 ),
                 dcc.Download(id="download-csv"),
+                html.Hr(),
             ],
+            className="center-block sidebar-bottom",
         ),
     ],
 )

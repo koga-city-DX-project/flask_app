@@ -10,24 +10,44 @@ h4, p {
     height: 40px;
 }
 
-.changePageDropDown {
-    display: flex;
-    margin-top: 1px;
+.setting {
+    padding: 0 0 0 0;
 }
-
 #sidebar-button {
     padding: 6px 1vw;
 }
 
-.setting {
-    padding: 0 0 0 0;
-}
 
 #setting_Col {
     padding: 0;
 }
 /* Medium devices (tablets, 768px and up) */
-@media (min-width: 768px) {
+@media (max-width: 992px) {
+    .changePageDropDown button {
+        font-size: .7em;
+        margin: 4px 0;
+    }
+    /* ファイルフィールド内のテキスト */
+    #input div {
+        font-size: .7em;
+    }
+    /* ファイル変更 */
+    #file-select-button {
+        font-size: .7em;
+    }
+    /* 選択ファイル */
+    .form-select {
+        font-size: .7em;
+    }
+    #download-button {
+        font-size: .7em;
+    }
+    .setting {
+        font-size: .7em;
+    }
+    .form-control {
+        font-size: .7em;
+    }
     h6 {
         font-size: .8em;
         margin: 1.5vw auto;
