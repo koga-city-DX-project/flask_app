@@ -5,6 +5,7 @@ import dash
 import dash_auth
 import dash_bootstrap_components as dbc
 import dash_uploader as du
+import pandas as pd
 from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
@@ -47,7 +48,7 @@ sidebar = html.Div(
                                 dbc.DropdownMenuItem("Page 2", href="/page2"),
                             ],
                             label="分析方法の変更",
-                            className="changePageDropDown",
+                            className="justify-content-start changePageDropDown",
                             color="secondary",
                             toggleClassName="fst-italic border border-dark opacity-80",
                         ),
@@ -69,14 +70,12 @@ sidebar = html.Div(
                 ),
                 html.P(id="input_info"),
                 html.Br(),
-                dcc.Dropdown(
+                dbc.Select(
                     id="uploaded-files-dropdown",
                     options=[
                         {"label": i, "value": i} for i in uploaded_files_dict.keys()
-                    ],  # アップロードされたファイルのリストがここに入ります
+                    ],
                     value=next(iter(uploaded_files_dict.keys())),
-                    placeholder="Select a file",
-                    style={"width": "100%"},
                 ),
                 html.Button(
                     id="file-select-button",
@@ -86,6 +85,18 @@ sidebar = html.Div(
                     className="bg-dark text-white",
                 ),
                 html.Hr(),
+                dbc.Input(
+                    id="input-box",
+                    type="text",
+                    placeholder="出力ファイルの名前",
+                ),
+                html.Button(
+                    "Download Data",
+                    id="download-button",
+                    style={"margin-top": "3vh"},
+                    className="bg-dark text-white",
+                ),
+                dcc.Download(id="download-csv"),
             ],
         ),
     ],
@@ -193,6 +204,23 @@ def load_new_file(n_clicks, value):
         return "ファイル変更", data
     else:
         raise dash.exceptions.PreventUpdate
+
+
+@app.callback(
+    Output("download-csv", "data"),
+    Input("download-button", "n_clicks"),
+    State("uploaded-files-dropdown", "value"),
+    State("input-box", "value"),
+    prevent_initial_call=True,
+)
+def download_csv(n_clicks, value, input_value):
+    if n_clicks:
+        df = pd.read_csv(uploaded_files_dict[value])
+        if input_value:
+            filename = f"{input_value}.csv"
+        else:
+            filename = f"{value}"
+        return dcc.send_data_frame(df.to_csv, filename)
 
 
 if __name__ == "__main__":

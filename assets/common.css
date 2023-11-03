@@ -12,11 +12,15 @@ h4, p {
 
 .changePageDropDown {
     display: flex;
-    justify-content: flex-end;
     margin-top: 1px;
 }
+
 #sidebar-button {
     padding: 6px 1vw;
+}
+
+.setting {
+    padding: 0 0 0 0;
 }
 
 #setting_Col {
@@ -43,4 +47,3 @@ h4, p {
         margin: .6vw auto;
     }
 }
-

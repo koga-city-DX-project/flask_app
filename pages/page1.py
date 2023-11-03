@@ -151,8 +151,9 @@ settings = html.Div(
                             className="bg-dark text-white",
                         ),
                         html.Hr(),
-                    ]
-                )
+                    ],
+                    className="setting",
+                ),
             ],
             style={"height": "50vh", "margin": "8px"},
         ),
@@ -164,7 +165,7 @@ layout = html.Div(
         dbc.Row(
             [
                 dbc.Col(
-                    [settings],
+                    settings,
                     className="bg-light",
                     width=2,
                 ),
