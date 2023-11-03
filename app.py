@@ -9,10 +9,15 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from pages import page1, page2
+from pages import home, page1, page2
 
 uploaded_files_dict = {}
-
+page_layouts = {
+    "/": home.layout,
+    "/page1": page1.layout,
+    "/page2": page2.layout,
+    # 他のページもここに追加できます
+}
 
 external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
 app = dash.Dash(
@@ -39,7 +44,7 @@ sidebar = html.Div(
                     [
                         dbc.DropdownMenu(
                             children=[
-                                dbc.DropdownMenuItem("More pages", header=True),
+                                dbc.DropdownMenuItem("home", href="/"),
                                 dbc.DropdownMenuItem("Page 1", href="/page1"),
                                 dbc.DropdownMenuItem("Page 2", href="/page2"),
                             ],
@@ -125,14 +130,7 @@ app.layout = dbc.Container(
 
 @app.callback([Output("page-content", "children")], [Input("url", "pathname")])
 def display_page(pathname):
-    if (pathname == "/page1") | (pathname == "/"):
-        return_content = page1.layout
-    elif pathname == "/page2":
-        return_content = page2.layout
-
-    else:
-        return_content = "404 not found"
-
+    return_content = page_layouts.get(pathname, "404 not found")
     return [return_content]
 
 
