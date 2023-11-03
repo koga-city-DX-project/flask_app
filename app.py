@@ -48,7 +48,7 @@ sidebar = html.Div(
                                 dbc.DropdownMenuItem("Page 2", href="/page2"),
                             ],
                             label="分析方法の変更",
-                            className="changePageDropDown",
+                            className="justify-content-start changePageDropDown",
                             color="secondary",
                             toggleClassName="fst-italic border border-dark opacity-80",
                         ),
