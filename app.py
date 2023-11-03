@@ -13,6 +13,8 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
+from pages import page1, page2
+
 df = pd.read_csv("data/data_sample.csv")
 uploaded_files_dict = {}
 
@@ -38,21 +40,22 @@ for filepath in glob.glob("data/*/*"):
     filename = os.path.basename(filepath)
     uploaded_files_dict[filename] = filepath
 
-sidebarToggleBtn = dbc.Button(
-    children=[html.I(className="fas fa-bars", style={"color": "#c2c7d0"})],
-    color="dark",
-    className="opacity-50",
-    id="sidebar-button",
-)
-
 sidebar = html.Div(
     [
         dbc.Row(
             [
                 dbc.Col(
                     [
-                        html.H6(
-                            "データ分析ツール",
+                        dbc.DropdownMenu(
+                            children=[
+                                dbc.DropdownMenuItem("More pages", header=True),
+                                dbc.DropdownMenuItem("Page 1", href="/page1"),
+                                dbc.DropdownMenuItem("Page 2", href="/page2"),
+                            ],
+                            label="分析方法の変更",
+                            className="changePageDropDown",
+                            color="secondary",
+                            toggleClassName="fst-italic border border-dark opacity-80",
                         ),
                     ],
                 ),
@@ -94,160 +97,9 @@ sidebar = html.Div(
     ],
 )
 
-settings = html.Div(
-    children=[
-        dbc.Row(
-            [
-                dbc.Col(sidebarToggleBtn, className="col-2", id="setting_Col"),
-                dbc.Col(
-                    html.Div(
-                        [
-                            html.H6(
-                                "Settings",
-                            ),
-                        ],
-                        className="align-items-center",
-                    ),
-                    className="col-10",
-                ),
-            ],
-            className="bg-primary text-white font-italic justify-content-start topMenu",
-        ),
-        dbc.Row(
-            [
-                html.Div(
-                    [
-                        html.P(
-                            "カテゴリー変数",
-                            style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
-                            },
-                            className="font-weight-bold",
-                        ),
-                        dcc.Dropdown(
-                            id="my-cat-picker",
-                            multi=False,
-                            value="cat0",
-                            options=[{"label": x, "value": x} for x in vars_cat],
-                            style={"width": "95%"},
-                        ),
-                        html.P(
-                            "連続変数",
-                            style={"margin-top": "16px", "margin-bottom": "4px"},
-                            className="font-weight-bold",
-                        ),
-                        dcc.Dropdown(
-                            id="my-cont-picker",
-                            multi=False,
-                            value="cont0",
-                            options=[{"label": x, "value": x} for x in vars_cont],
-                            style={"width": "95%"},
-                        ),
-                        html.P(
-                            "相関行列の連続変数",
-                            style={"margin-top": "16px", "margin-bottom": "4px"},
-                            className="font-weight-bold",
-                        ),
-                        dcc.Dropdown(
-                            id="my-corr-picker",
-                            multi=True,
-                            value=vars_cont + ["target"],
-                            options=[
-                                {"label": x, "value": x} for x in vars_cont + ["target"]
-                            ],
-                            style={"width": "95%"},
-                        ),
-                        html.Button(
-                            id="my-button",
-                            n_clicks=0,
-                            children="設定変更",
-                            style={"margin-top": "16px"},
-                            className="bg-dark text-white",
-                        ),
-                        html.Hr(),
-                    ]
-                )
-            ],
-            style={"height": "50vh", "margin": "8px"},
-        ),
-    ]
-)
 
 content = html.Div(
-    [
-        dbc.Row(
-            [
-                dbc.Col(
-                    [
-                        html.Div(
-                            [
-                                html.H6(
-                                    "タイトルタイトル",
-                                )
-                            ],
-                            className="align-items-center",
-                        )
-                    ],
-                ),
-                dbc.Col(
-                    [
-                        dbc.DropdownMenu(
-                            children=[
-                                dbc.DropdownMenuItem("More pages", header=True),
-                                dbc.DropdownMenuItem("Page 2", href="#"),
-                                dbc.DropdownMenuItem("Page 3", href="#"),
-                            ],
-                            label="分析方法の変更",
-                            className="changePageDropDown",
-                            color="secondary",
-                            toggleClassName="fst-italic border border-dark opacity-80",
-                        ),
-                    ],
-                ),
-            ],
-            className="bg-primary text-white font-italic topMenu ",
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    html.Div(
-                        [
-                            html.P(id="bar-title", className="font-weight-bold"),
-                            dcc.Graph(id="bar-chart", className="bg-light"),
-                        ]
-                    ),
-                    width=6,
-                ),
-                dbc.Col(
-                    html.Div(
-                        [
-                            html.P(id="dist-title", className="font-weight-bold"),
-                            dcc.Graph(id="dist-chart", className="bg-light"),
-                        ]
-                    ),
-                    width=6,
-                ),
-            ],
-            style={
-                "margin": "2vh 1vw 1vh 1vw",
-            },
-        ),
-        dbc.Row(
-            [
-                html.Div(
-                    [
-                        html.P(
-                            "ヒートマップ",
-                            className="font-weight-bold",
-                        ),
-                        dcc.Graph(id="corr-chart", className="bg-light"),
-                    ]
-                )
-            ],
-            style={"margin": "8px", "height": "100vh"},
-        ),
-    ],
+    id="page-content",
 )
 
 app.layout = dbc.Container(
@@ -264,17 +116,12 @@ app.layout = dbc.Container(
                     id="sidebar",
                 ),
                 dbc.Col(
-                    [settings],
-                    className="bg-light",
-                    width=2,
-                ),
-                dbc.Col(
                     content,
                     id="content",
                     style={
                         "transition": "margin-left 0.3s ease-in-out",
                     },
-                    width=8,
+                    width=10,
                 ),
             ],
             justify="start",
@@ -282,6 +129,19 @@ app.layout = dbc.Container(
     ],
     fluid=True,
 )
+
+
+@app.callback([Output("page-content", "children")], [Input("url", "pathname")])
+def display_page(pathname):
+    if (pathname == "/page1") | (pathname == "/"):
+        return_content = page1.layout
+    elif pathname == "/page2":
+        return_content = page2.layout
+
+    else:
+        return_content = "404 not found"
+
+    return [return_content]
 
 
 # カテゴリー変数の分布の変数選択処理
@@ -394,7 +254,7 @@ def toggle_sidebar(n_clicks):
                 {
                     "marginLeft": "0px",
                     "transition": "margin-left 0.3s ease-in-out",
-                    "width": "83.33333%",
+                    "width": "100%",
                 },
             )
         else:  # toggle on even clicks
@@ -403,7 +263,7 @@ def toggle_sidebar(n_clicks):
                 {
                     "marginLeft": "0px",
                     "transition": "margin-left 0.3s ease-in-out",
-                    "width": "66.66667%",
+                    "width": "83.33333%",
                 },
             )
     raise PreventUpdate
