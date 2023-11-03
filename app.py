@@ -16,7 +16,6 @@ page_layouts = {
     "/": home.layout,
     "/page1": page1.layout,
     "/page2": page2.layout,
-    # 他のページもここに追加できます
 }
 
 external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
@@ -31,7 +30,6 @@ auth = dash_auth.BasicAuth(app, passPair)
 du.configure_upload(app, r"/usr/src/data")
 
 
-# アプリケーションの初期化時にdataディレクトリをスキャン
 for filepath in glob.glob("data/*/*"):
     filename = os.path.basename(filepath)
     uploaded_files_dict[filename] = filepath
@@ -142,7 +140,7 @@ def display_page(pathname):
 )
 def toggle_sidebar(n_clicks):
     if n_clicks:
-        if n_clicks % 2 == 1:  # toggle on odd clicks
+        if n_clicks % 2 == 1:
             return (
                 {"display": "none"},
                 {
@@ -151,7 +149,7 @@ def toggle_sidebar(n_clicks):
                     "width": "100%",
                 },
             )
-        else:  # toggle on even clicks
+        else:
             return (
                 {"marginLeft": "0px"},
                 {
