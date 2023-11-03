@@ -1,0 +1,46 @@
+h4, p {
+    font-size: 1.1vw;
+}
+
+.sidebarToggleBtn {
+    margin: 0;
+}
+
+.topMenu {
+    height: 40px;
+}
+
+.changePageDropDown {
+    display: flex;
+    justify-content: flex-end;
+    margin-top: 1px;
+}
+#sidebar-button {
+    padding: 6px 1vw;
+}
+
+#setting_Col {
+    padding: 0;
+}
+/* Medium devices (tablets, 768px and up) */
+@media (min-width: 768px) {
+    h6 {
+        font-size: .8em;
+        margin: 1.5vw auto;
+    }
+}
+
+@media (min-width: 992px) {
+    h6 {
+        font-size: 1em;
+        margin: 1vw auto;
+    }
+}
+
+@media (min-width: 1440px) {
+    h6 {
+        font-size: 1.2em;
+        margin: .6vw auto;
+    }
+}
+
