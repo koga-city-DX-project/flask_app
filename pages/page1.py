@@ -115,7 +115,7 @@ settings = html.Div(
                             multi=False,
                             value="cat0",
                             options=[{"label": x, "value": x} for x in vars_cat],
-                            style={"width": "95%"},
+                            style={"width": "98%"},
                         ),
                         html.P(
                             "連続変数",
@@ -127,7 +127,7 @@ settings = html.Div(
                             multi=False,
                             value="cont0",
                             options=[{"label": x, "value": x} for x in vars_cont],
-                            style={"width": "95%"},
+                            style={"width": "98%"},
                         ),
                         html.P(
                             "相関行列の連続変数",
@@ -141,21 +141,21 @@ settings = html.Div(
                             options=[
                                 {"label": x, "value": x} for x in vars_cont + ["target"]
                             ],
-                            style={"width": "95%"},
+                            style={"width": "98%"},
                         ),
                         html.Button(
                             id="setting-change-button",
                             n_clicks=0,
                             children="設定変更",
-                            style={"margin-top": "16px"},
-                            className="bg-dark text-white",
+                            style={"margin": "16px auto 0 auto", "width": "95%"},
+                            className="bg-dark text-white ",
                         ),
                         html.Hr(),
                     ],
-                    className="setting",
+                    className="setting d-grid",
                 ),
             ],
-            style={"height": "50vh", "margin": "8px"},
+            style={"height": "50vh", "margin-left": "1px"},
         ),
     ]
 )
