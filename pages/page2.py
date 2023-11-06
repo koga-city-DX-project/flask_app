@@ -197,31 +197,32 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
 
     if cat_pick and cont_pick and cont_pick in df.columns:
         stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
-        print(stats_df.columns)  # debug
-
-        # 'Statistics' という列が存在しない場合は新しく追加する
-        if "Statistics" not in stats_df.columns:
-            stats_df["Statistics"] = ""
-
         stats_df.columns = [
             "Statistics" if col == cont_pick else col for col in stats_df.columns
         ]
 
-        # 'Statistics' 列が浮動小数点数として扱われるように変更
-        stats_df["Statistics"] = stats_df["Statistics"].apply(
-            lambda x: round(float(x), 2) if x != "" else x
-        )
-        print(stats_df.columns)  # debug
+        # 'Statistics' 列をデータフレームから取り除く
+        stats_df = stats_df.drop("Statistics", axis=1, errors="ignore")
 
+        # データフレームを転置
         stats_df = stats_df.T.reset_index()
+
+        # 列名を変更
         stats_df.columns = stats_df.iloc[0]
+
+        # 不要な行を削除
         stats_df = stats_df.drop(0).reset_index(drop=True)
-        stats_df = stats_df.rename(columns={stats_df.columns[0]: ""})
+
+        # もし "Statistics" 列が存在すれば、それを除外して列名のリストを作成
+        table_columns = [col for col in stats_df.columns if col != "Statistics"]
+
+        # dbc.Table.from_dataframe に正しい列名のリストを指定
+        table = dbc.Table.from_dataframe(
+            stats_df, columns=table_columns, striped=True, bordered=True, hover=True
+        )
+
         stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
 
-        return (
-            dbc.Table.from_dataframe(stats_df, striped=True, bordered=True, hover=True),
-            stats_title,
-        )
+        return table, stats_title
 
     return "", ""
