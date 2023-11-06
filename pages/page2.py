@@ -12,7 +12,7 @@ sidebarToggleBtn = dbc.Button(
     children=[html.I(className="fas fa-bars", style={"color": "#c2c7d0"})],
     color="dark",
     className="opacity-50",
-    id="page2-sidebar-button",  # 変更
+    id="sidebar-button",  # 変更
 )
 
 contents = html.Div(
@@ -24,7 +24,7 @@ contents = html.Div(
                         html.Div(
                             [
                                 html.H6(
-                                    "タイトルタイトル",
+                                    "基本統計量",
                                 )
                             ],
                             className="align-items-center",
@@ -37,20 +37,24 @@ contents = html.Div(
         dbc.Row(
             [
                 dbc.Col(
-                    html.Div(
-                        [
-                            html.P(
-                                id="page2-stats-title", className="font-weight-bold"
-                            ),  # 変更
-                            html.Table(id="page2-stats-table"),  # 変更
-                        ]
-                    ),
+                    html.Div(id="page2-stats-title", className="font-weight-bold"),
                     width=12,
                 ),
             ],
             style={
-                "margin": "2vh 1vw 1vh 1vw",
+                "height": "10%",
             },
+        ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    html.Div(
+                        html.Table(id="page2-stats-table"),  # 変更
+                    ),
+                    width=12,
+                ),
+            ],
+            style={"overflow": "scroll"},
         ),
     ],
 )
@@ -119,9 +123,9 @@ settings = html.Div(
                     className="setting d-grid",
                 ),
             ],
-            style={"height": "50vh", "margin-left": "1px"},
         ),
-    ]
+    ],
+    style={"height": "100vh", "margin-left": "1px"},
 )
 
 layout = html.Div(
@@ -218,7 +222,12 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
 
         # dbc.Table.from_dataframe に正しい列名のリストを指定
         table = dbc.Table.from_dataframe(
-            stats_df, columns=table_columns, striped=True, bordered=True, hover=True
+            stats_df,
+            columns=table_columns,
+            striped=True,
+            bordered=True,
+            hover=True,
+            style={"height": "70vh"},
         )
 
         stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
