@@ -103,7 +103,7 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="page2-my-cont-picker",  # 変更
                             multi=False,
-                            value="id",
+                            value="cont0",
                             options=[{"label": x, "value": x} for x in vars_cont],
                             style={"width": "98%"},
                         ),
@@ -156,7 +156,6 @@ def update_page2_cat_picker_options(data):  # 変更
         return []
 
     df = pd.read_csv(data)
-    print(df.columns)
     vars_cat = [var for var in df.columns if var.startswith("cat")]
 
     options_cat = [{"label": x, "value": x} for x in vars_cat]
@@ -198,13 +197,26 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
 
     if cat_pick and cont_pick and cont_pick in df.columns:
         stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
-        stats_df = stats_df.rename(columns={cont_pick: "統計量"})
-        stats_df["統計量"] = stats_df["統計量"].apply(lambda x: round(x, 2))
+        print(stats_df.columns)  # debug
+
+        # 'Statistics' という列が存在しない場合は新しく追加する
+        if "Statistics" not in stats_df.columns:
+            stats_df["Statistics"] = ""
+
+        stats_df.columns = [
+            "Statistics" if col == cont_pick else col for col in stats_df.columns
+        ]
+
+        # 'Statistics' 列が浮動小数点数として扱われるように変更
+        stats_df["Statistics"] = stats_df["Statistics"].apply(
+            lambda x: round(float(x), 2) if x != "" else x
+        )
+        print(stats_df.columns)  # debug
+
         stats_df = stats_df.T.reset_index()
         stats_df.columns = stats_df.iloc[0]
         stats_df = stats_df.drop(0).reset_index(drop=True)
         stats_df = stats_df.rename(columns={stats_df.columns[0]: ""})
-
         stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
 
         return (
