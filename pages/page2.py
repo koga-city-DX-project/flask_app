@@ -12,7 +12,7 @@ sidebarToggleBtn = dbc.Button(
     children=[html.I(className="fas fa-bars", style={"color": "#c2c7d0"})],
     color="dark",
     className="opacity-50",
-    id="sidebar-button",  # 変更
+    id="sidebar-button",
 )
 
 contents = html.Div(
@@ -34,6 +34,7 @@ contents = html.Div(
             ],
             className="bg-primary text-white font-italic topMenu ",
         ),
+        html.Div(id="page2-selected-file", className="font-weight-bold"),
         dbc.Row(
             [
                 dbc.Col(
@@ -49,12 +50,17 @@ contents = html.Div(
             [
                 dbc.Col(
                     html.Div(
-                        html.Table(id="page2-stats-table"),  # 変更
+                        html.Table(id="page2-stats-table"),
                     ),
                     width=12,
                 ),
             ],
             style={"overflow": "scroll"},
+        ),
+        html.Hr(),
+        html.Div(
+            "↓ここから下に別の結果↓敢えて画面の大きさの50%の大きさでdivタグを取っている",
+            style={"height": "50vh"},
         ),
     ],
 )
@@ -63,9 +69,7 @@ settings = html.Div(
     children=[
         dbc.Row(
             [
-                dbc.Col(
-                    sidebarToggleBtn, className="col-2", id="page2-setting_Col"
-                ),  # 変更
+                dbc.Col(sidebarToggleBtn, className="col-2", id="setting_Col"),
                 dbc.Col(
                     html.Div(
                         [
@@ -93,7 +97,7 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         dcc.Dropdown(
-                            id="page2-my-cat-picker",  # 変更
+                            id="page2-my-cat-picker",
                             multi=False,
                             value="cat0",
                             options=[{"label": x, "value": x} for x in vars_cat],
@@ -105,17 +109,17 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         dcc.Dropdown(
-                            id="page2-my-cont-picker",  # 変更
+                            id="page2-my-cont-picker",
                             multi=False,
                             value="cont0",
                             options=[{"label": x, "value": x} for x in vars_cont],
                             style={"width": "98%"},
                         ),
                         html.Button(
-                            id="page2-setting-change-button",  # 変更
+                            id="page2-setting-change-button",
                             n_clicks=0,
                             children="設定変更",
-                            style={"margin": "16px auto 0 auto", "width": "95%"},
+                            style={"margin-top": "16px", "width": "95%"},
                             className="bg-dark text-white ",
                         ),
                         html.Hr(),
@@ -123,9 +127,9 @@ settings = html.Div(
                     className="setting d-grid",
                 ),
             ],
+            style={"height": "30vh", "margin-left": "1px"},
         ),
     ],
-    style={"height": "100vh", "margin-left": "1px"},
 )
 
 layout = html.Div(
@@ -152,10 +156,10 @@ layout = html.Div(
 
 # カテゴリー変数の選択肢を更新するコールバック
 @callback(
-    Output("page2-my-cat-picker", "options"),  # 変更
+    Output("page2-my-cat-picker", "options"),
     [Input("shared-selected-df", "data")],
 )
-def update_page2_cat_picker_options(data):  # 変更
+def update_page2_cat_picker_options(data):
     if data is None:
         return []
 
@@ -188,6 +192,7 @@ def update_page2_cont_picker_options(data):
 @callback(
     Output("page2-stats-table", "children"),
     Output("page2-stats-title", "children"),
+    Output("page2-selected-file", "children"),
     Input("page2-setting-change-button", "n_clicks"),
     Input("shared-selected-df", "data"),
     State("page2-my-cat-picker", "value"),
@@ -198,7 +203,8 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
         return "", ""
 
     df = pd.read_csv(data)
-
+    selected_file = data.split("/")
+    selected_file_name = f"選択中ファイル：{selected_file[-1]}"
     if cat_pick and cont_pick and cont_pick in df.columns:
         stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
         stats_df.columns = [
@@ -232,6 +238,6 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
 
         stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
 
-        return table, stats_title
+        return table, stats_title, selected_file_name
 
-    return "", ""
+    return "", "", ""

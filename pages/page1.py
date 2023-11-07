@@ -147,7 +147,7 @@ settings = html.Div(
                             id="setting-change-button",
                             n_clicks=0,
                             children="設定変更",
-                            style={"margin": "16px auto 0 auto", "width": "95%"},
+                            style={"margin-top": "16px", "width": "95%"},
                             className="bg-dark text-white ",
                         ),
                         html.Hr(),
@@ -171,9 +171,6 @@ layout = html.Div(
                 ),
                 dbc.Col(
                     contents,
-                    style={
-                        "transition": "margin-left 0.3s ease-in-out",
-                    },
                     width=10,
                 ),
             ]
@@ -191,7 +188,7 @@ layout = html.Div(
     State("my-cat-picker", "value"),
 )
 def update_bar(n_clicks, data, cat_pick):
-    df = pd.read_csv(data)
+    df = pd.read_csv(data, low_memory=False)
     bar_df = df.groupby(["target", cat_pick]).count()["id"].reset_index()
     bar_df["target"] = bar_df["target"].replace({0: "target=0", 1: "target=1"})
 
@@ -228,7 +225,7 @@ def update_bar(n_clicks, data, cat_pick):
     State("my-cont-picker", "value"),
 )
 def update_dist(n_clicks, data, cont_pick):
-    df = pd.read_csv(data)
+    df = pd.read_csv(data, low_memory=False)
     num0 = df[df["target"] == 0][cont_pick].values.tolist()
     num1 = df[df["target"] == 1][cont_pick].values.tolist()
 
@@ -263,7 +260,7 @@ def update_dist(n_clicks, data, cont_pick):
     State("my-corr-picker", "value"),
 )
 def update_corr(n_clicks, file_n_clicks, data, corr_pick):
-    df = pd.read_csv(data)
+    df = pd.read_csv(data, low_memory=False)
     df_corr = df[corr_pick].corr()
     x = list(df_corr.columns)
     y = list(df_corr.index)
@@ -295,7 +292,7 @@ def update_corr(n_clicks, file_n_clicks, data, corr_pick):
     [Input("shared-selected-df", "data")],
 )
 def update_dropdown_options(data):
-    df = pd.read_csv(data)
+    df = pd.read_csv(data, low_memory=False)
     vars_cat = [var for var in df.columns if var.startswith("cat")]
     vars_cont = [var for var in df.columns if var.startswith("cont")]
 
