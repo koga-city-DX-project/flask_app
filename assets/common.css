@@ -2,10 +2,6 @@ h4, p {
     font-size: 1.1vw;
 }
 
-.sidebarToggleBtn {
-    margin: 0;
-}
-
 .topMenu {
     height: 40px;
 }
@@ -13,6 +9,22 @@ h4, p {
 .setting {
     padding: 0 0 0 0;
 }
+
+.dash-loading-callback {
+    -webkit-animation: fadein .5s ease-in 1s forwards; /* Safari and Chrome */
+
+/* 他のスタイル設定 */
+    /* アニメーションを1秒遅らせてから0.5秒かけてフェードインさせる */
+       -moz-animation: fadein .5s ease-in 1s forwards; /* Firefox */
+         -o-animation: fadein .5s ease-in 1s forwards; /* Opera */
+            animation: fadein .5s ease-in 1s forwards;
+}
+
+.sidebar {
+    height: 50vh;
+    margin-left: 1px;
+}
+
 #sidebar-button {
     padding: 6px 1vw;
 }

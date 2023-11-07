@@ -98,7 +98,7 @@ sidebar = html.Div(
                 dcc.Download(id="download-csv"),
                 html.Hr(),
             ],
-            className="center-block sidebar-bottom",
+            className="center-block sidebar",
         ),
     ],
 )
@@ -125,14 +125,11 @@ app.layout = dbc.Container(
                 dbc.Col(
                     content,
                     id="content",
-                    style={
-                        "transition": "margin-left 0.3s ease-in-out",
-                    },
                     width=10,
                 ),
             ],
             justify="start",
-        ),
+        )
     ],
     fluid=True,
 )
