@@ -10,12 +10,13 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from pages import home, page1, page3
+from pages import home, page1, page2, page3
 
 uploaded_files_dict = {}
 page_layouts = {
     "/": home.layout,
     "/page1": page1.layout,
+    "/page2": page2.layout,
     "/page3": page3.layout,
 }
 
@@ -45,6 +46,7 @@ sidebar = html.Div(
                             children=[
                                 dbc.DropdownMenuItem("home", href="/"),
                                 dbc.DropdownMenuItem("Page 1", href="/page1"),
+                                dbc.DropdownMenuItem("Page 2", href="/page2"),
                                 dbc.DropdownMenuItem("Page 3", href="/page3"),
                             ],
                             label="分析方法の変更",
@@ -67,8 +69,8 @@ sidebar = html.Div(
                     max_files=1,
                     cancel_button=True,
                 ),
-                html.P(id="input_info"),
                 html.Br(),
+                html.Div("input_info"),
                 dbc.Select(
                     id="uploaded-files-dropdown",
                     options=[

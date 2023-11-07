@@ -147,7 +147,7 @@ settings = html.Div(
                             id="setting-change-button",
                             n_clicks=0,
                             children="設定変更",
-                            style={"margin": "16px auto 0 auto", "width": "95%"},
+                            style={"margin-top": "16px", "width": "95%"},
                             className="bg-dark text-white ",
                         ),
                         html.Hr(),
