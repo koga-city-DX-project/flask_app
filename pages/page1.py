@@ -74,6 +74,7 @@ contents = html.Div(
                     ]
                 )
             ],
+            style={"margin": "8px", "height": "100vh"},
         ),
     ],
 )
