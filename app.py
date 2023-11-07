@@ -74,7 +74,7 @@ sidebar = html.Div(
                     options=[
                         {"label": i, "value": i} for i in uploaded_files_dict.keys()
                     ],
-                    value=next(iter(uploaded_files_dict.keys())),
+                    value=next(iter(uploaded_files_dict.keys()), None),
                 ),
                 html.Button(
                     id="file-select-button",
