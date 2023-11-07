@@ -44,7 +44,7 @@ contents = html.Div(
                                 id="table",
                                 columns=[],
                                 data=[],
-                                page_size=25,
+                                virtualization=True,
                                 style_table={"overflowX": "auto"},
                             ),
                         ],
@@ -74,12 +74,6 @@ settings = html.Div(
                 ),
             ],
             className="bg-primary text-white font-italic justify-content-start topMenu",
-        ),
-        dbc.Row(
-            [
-                html.Div(),
-            ],
-            style={"height": "50vh", "margin-left": "1px"},
         ),
     ]
 )
@@ -117,4 +111,4 @@ def update_table(data):
     selectedfile = data.split("/")
     columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
     data = df.to_dict("records")
-    return selectedfile[2], columns, data
+    return selectedfile[-1], columns, data
