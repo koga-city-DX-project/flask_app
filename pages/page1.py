@@ -143,18 +143,20 @@ settings = html.Div(
                             ],
                             className="setting_dropdown",
                         ),
-                        html.Button(
+                        dbc.Button(
                             id="setting-change-button",
                             n_clicks=0,
                             children="設定変更",
-                            className="bg-dark text-white setting_buttom",
+                            className=" text-white setting_button",
+                            color="secondary",
+                            style={"margin-top": "16px", "margin-bottom": "4px"},
                         ),
                         html.Hr(),
                     ],
                     className="setting d-grid",
                 ),
             ],
-            style={"height": "50vh", "margin-left": "1px"},
+            style={"height": "25vh", "margin-left": "1px"},
         ),
     ]
 )

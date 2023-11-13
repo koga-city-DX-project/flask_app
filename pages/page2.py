@@ -101,7 +101,7 @@ settings = html.Div(
                             multi=False,
                             value="cat0",
                             options=[{"label": x, "value": x} for x in vars_cat],
-                            style={"width": "98%"},
+                            className="setting_dropdown",
                         ),
                         html.P(
                             "連続変数",
@@ -113,14 +113,15 @@ settings = html.Div(
                             multi=False,
                             value="cont0",
                             options=[{"label": x, "value": x} for x in vars_cont],
-                            style={"width": "98%"},
+                            className="setting_dropdown",
                         ),
-                        html.Button(
+                        dbc.Button(
                             id="page2-setting-change-button",
                             n_clicks=0,
                             children="設定変更",
                             style={"margin-top": "16px", "width": "95%"},
-                            className="bg-dark text-white ",
+                            className="text-white ",
+                            color="secondary",
                         ),
                         html.Hr(),
                     ],
