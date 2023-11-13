@@ -1,6 +1,7 @@
+import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
-from dash import Input, Output, callback, dash_table, dcc, html
+from dash import Input, Output, State, callback, dash_table, dcc, html
 
 sidebarToggleBtn = dbc.Button(
     children=[html.I(className="fas fa-bars", style={"color": "#c2c7d0"})],
@@ -64,9 +65,7 @@ settings = html.Div(
                 dbc.Col(
                     html.Div(
                         [
-                            html.H6(
-                                "Settings",
-                            ),
+                            html.H6("Settings"),
                         ],
                         className="align-items-center",
                     ),
@@ -74,6 +73,40 @@ settings = html.Div(
                 ),
             ],
             className="bg-primary text-white font-italic justify-content-start topMenu",
+        ),
+        dbc.Row(
+            [
+                html.Div(
+                    [
+                        html.P(
+                            "列の削除",
+                            style={
+                                "margin-top": "8px",
+                                "margin-bottom": "4px",
+                            },
+                            className="font-weight-bold",
+                        ),
+                        dcc.Dropdown(
+                            id="col-dropdown", multi=True, className="setting_dropdown"
+                        ),
+                        html.Button(
+                            id="delete-button",
+                            n_clicks=0,
+                            children="削除",
+                            className="bg-dark text-white setting_buttom",
+                        ),
+                        html.Hr(),
+                        html.Button(
+                            id="save-button",
+                            n_clicks=0,
+                            children="現在のデータを保存",
+                            className="bg-dark text-white setting_buttom",
+                        ),
+                    ],
+                    className="setting d-grid",
+                ),
+            ],
+            style={"height": "25vh", "margin-left": "1px"},
         ),
     ]
 )
@@ -102,13 +135,46 @@ layout = html.Div(
 
 @callback(
     Output("selected-file-title", "children"),
-    Output("table", "columns"),
     Output("table", "data"),
+    Output("table", "columns"),
+    Output("col-dropdown", "options"),
+    Input("delete-button", "n_clicks"),
     Input("shared-selected-df", "data"),
+    State("col-dropdown", "value"),
+    State("table", "data"),
 )
-def update_table(data):
-    df = pd.read_csv(data, low_memory=False)
-    selectedfile = data.split("/")
-    columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
-    data = df.to_dict("records")
-    return selectedfile[-1], columns, data
+def update_table(n, data, cols, table_data):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if trigger_id == "shared-selected-df":
+        df = pd.read_csv(data, low_memory=False)
+        selectedfile = data.split("/")
+        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        col_options = [{"label": i, "value": i} for i in df.columns]
+        data = df.to_dict("records")
+        print("aaa")
+        print(data)
+        return selectedfile[-1], data, columns, col_options
+
+    elif trigger_id == "delete-button" and n > 0:
+        df = pd.DataFrame(table_data).drop(columns=cols)
+        selectedfile = data.split("/")
+        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        col_options = [{"label": i, "value": i} for i in df.columns]
+        return (
+            selectedfile[-1],
+            df.to_dict("records"),
+            columns,
+            col_options,
+        )
+    else:
+        return (
+            dash.no_update,
+            dash.no_update,
+            dash.no_update,
+            dash.no_update,
+        )
