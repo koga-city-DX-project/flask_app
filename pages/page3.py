@@ -78,6 +78,7 @@ settings = html.Div(
             [
                 html.Div(
                     [
+                        html.Div(id="store-data", style={"display": "none"}),
                         html.P(
                             "列の削除",
                             style={
@@ -89,18 +90,26 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="col-dropdown", multi=True, className="setting_dropdown"
                         ),
-                        html.Button(
+                        dbc.Button(
                             id="delete-button",
                             n_clicks=0,
                             children="削除",
-                            className="bg-dark text-white setting_buttom",
+                            className=" text-white setting_buttom",
+                            color="secondary",
                         ),
                         html.Hr(),
-                        html.Button(
+                        dbc.Input(
+                            id="rename_file",
+                            type="text",
+                            placeholder="保存ファイルの名前",
+                            className="setting_buttom",
+                        ),
+                        dbc.Button(
                             id="save-button",
                             n_clicks=0,
-                            children="現在のデータを保存",
-                            className="bg-dark text-white setting_buttom",
+                            children="保存",
+                            className=" text-white setting_buttom",
+                            color="secondary",
                         ),
                     ],
                     className="setting d-grid",
@@ -178,3 +187,23 @@ def update_table(n, data, cols, table_data):
             dash.no_update,
             dash.no_update,
         )
+
+
+@callback(
+    Output("store-data", "children"),
+    [Input("save-button", "n_clicks")],
+    [
+        State("table", "data"),
+        State("rename_file", "value"),
+        State("uploaded-files-dropdown", "value"),
+    ],
+)
+def save_table(n_clicks, table_data, file_rename_value, file_current_name):
+    if n_clicks > 0:
+        df = pd.DataFrame(table_data)
+        if file_rename_value:
+            filename = f"{file_rename_value}.csv"
+        else:
+            filename = f"{file_current_name}.csv"
+        filepath = f"/usr/src/data/save/{filename}"
+        df.to_csv(filepath, index=False)
