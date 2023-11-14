@@ -19,8 +19,7 @@ page_layouts = {
     "/page2": page2.layout,
     "/page3": page3.layout,
 }
-
-external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
+external_stylesheets = [dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME]
 app = dash.Dash(
     __name__,
     suppress_callback_exceptions=True,
@@ -50,9 +49,8 @@ sidebar = html.Div(
                                 dbc.DropdownMenuItem("Page 3", href="/page3"),
                             ],
                             label="分析方法の変更",
-                            className="justify-content-start changePageDropDown",
+                            className="justify-content-start changePageDropDown bg-primary",
                             color="secondary",
-                            toggleClassName="fst-italic border border-dark opacity-80",
                         ),
                     ],
                 ),
@@ -78,12 +76,27 @@ sidebar = html.Div(
                     ],
                     value=next(iter(uploaded_files_dict.keys()), None),
                 ),
-                html.Button(
+                dbc.Button(
                     id="file-select-button",
                     n_clicks=0,
                     children="ファイル変更",
                     style={"margin": "3vh 0 3vh 0"},
-                    className="bg-dark text-white",
+                    color="secondary",
+                ),
+                dbc.Button(
+                    id="file-reload-button",
+                    n_clicks=0,
+                    children="ファイル更新",
+                    style={"margin": "0 0 3vh 0"},
+                    className="text-white",
+                    color="secondary",
+                ),
+                dbc.Button(
+                    id="file-delete-button",
+                    n_clicks=0,
+                    children="ファイル削除",
+                    className="text-white",
+                    color="secondary",
                 ),
                 html.Hr(),
                 dbc.Input(
@@ -91,14 +104,39 @@ sidebar = html.Div(
                     type="text",
                     placeholder="出力ファイルの名前",
                 ),
-                html.Button(
+                dbc.Button(
                     "Download Data",
                     id="download-button",
                     style={"margin": "3vh 0 3vh 0"},
-                    className="bg-dark text-white",
+                    className="text-white",
+                    color="secondary",
                 ),
                 dcc.Download(id="download-csv"),
                 html.Hr(),
+                dbc.Modal(
+                    [
+                        dbc.ModalHeader(id="modal_header"),
+                        dbc.ModalBody("選択したファイルを削除しますか？"),
+                        dbc.ModalFooter(
+                            [
+                                dbc.Button(
+                                    "削除",
+                                    id="delete-confirm-button",
+                                    className="ml-auto",
+                                    color="danger",
+                                ),
+                                dbc.Button(
+                                    "キャンセル",
+                                    id="cancel-button",
+                                    className="ml-auto",
+                                    color="secondary",
+                                ),
+                            ]
+                        ),
+                    ],
+                    id="modal",
+                    is_open=False,
+                ),
             ],
             className="center-block sidebar",
         ),
@@ -106,9 +144,7 @@ sidebar = html.Div(
 )
 
 
-content = html.Div(
-    id="page-content",
-)
+content = html.Div(id="page-content")
 
 app.layout = dbc.Container(
     [
@@ -170,7 +206,11 @@ def toggle_sidebar(n_clicks):
 
 
 @du.callback(
-    output=Output("uploaded-files-dropdown", "options"),
+    output=Output(
+        "uploaded-files-dropdown",
+        "options",
+        allow_duplicate=True,
+    ),
     id="input",
 )
 def callback_on_completion(status: du.UploadStatus):
@@ -179,6 +219,42 @@ def callback_on_completion(status: du.UploadStatus):
         uploaded_files_dict[filename] = str(x)
     uploaded_files = list(uploaded_files_dict.keys())
     return [{"label": i, "value": i} for i in uploaded_files]
+
+
+@app.callback(
+    Output("uploaded-files-dropdown", "options"),
+    [
+        Input("file-reload-button", "n_clicks"),
+        Input("delete-confirm-button", "n_clicks"),
+    ],
+    [State("uploaded-files-dropdown", "value")],
+)
+def update_dropdown(n1, n2, value):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        raise PreventUpdate
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    if button_id == "file-reload-button":
+        if n1 is None:
+            raise PreventUpdate
+
+        for filepath in glob.glob("data/*/*"):
+            filename = os.path.basename(filepath)
+            uploaded_files_dict[filename] = filepath
+        uploaded_files = list(uploaded_files_dict.keys())
+        return [{"label": i, "value": i} for i in uploaded_files]
+
+    elif button_id == "delete-confirm-button":
+        if n2:
+            os.remove(uploaded_files_dict[value])  # ファイルを削除
+            del uploaded_files_dict[value]  # 辞書から削除
+            uploaded_files = list(uploaded_files_dict.keys())
+            return [{"label": i, "value": i} for i in uploaded_files]
+        else:
+            raise dash.exceptions.PreventUpdate
 
 
 @app.callback(
@@ -217,7 +293,27 @@ def download_csv(n_clicks, value, input_value):
             filename = f"{input_value}.csv"
         else:
             filename = f"{value}"
-        return dcc.send_data_frame(df.to_csv, filename)
+        return dcc.send_string(df.to_csv(index=False), filename)
+
+
+@app.callback(
+    Output("modal", "is_open"),
+    Output("modal_header", "children"),
+    [
+        Input("file-delete-button", "n_clicks"),
+        Input("cancel-button", "n_clicks"),
+        Input("delete-confirm-button", "n_clicks"),
+    ],
+    [
+        State("modal", "is_open"),
+        State("uploaded-files-dropdown", "value"),
+    ],
+)
+def toggle_modal(n1, n2, n3, is_open, value):
+    header_text = f"選択中のファイル：{value}"
+    if n1 or n2 or n3:
+        return not is_open, header_text
+    return is_open, header_text
 
 
 if __name__ == "__main__":
