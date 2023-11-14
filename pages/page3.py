@@ -2,6 +2,8 @@ import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 from dash import Input, Output, State, callback, dash_table, dcc, html
+from sklearn.experimental import enable_iterative_imputer  # noqa: F401
+from sklearn.impute import IterativeImputer
 
 sidebarToggleBtn = dbc.Button(
     children=[html.I(className="fas fa-bars", style={"color": "#c2c7d0"})],
@@ -88,12 +90,47 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         dcc.Dropdown(
-                            id="col-dropdown", multi=True, className="setting_dropdown"
+                            id="col-dropdown",
+                            multi=True,
+                            className="setting_dropdown",
+                            placeholder="列名",
                         ),
                         dbc.Button(
-                            id="delete-button",
+                            id="delete-col-button",
                             n_clicks=0,
-                            children="削除",
+                            children="列削除",
+                            className=" text-white setting_buttom",
+                            color="secondary",
+                        ),
+                        html.P(
+                            "欠損値",
+                            style={
+                                "margin-top": "8px",
+                                "margin-bottom": "4px",
+                            },
+                            className="font-weight-bold",
+                        ),
+                        dcc.Dropdown(
+                            id="missing-value-col-dropdown",
+                            multi=True,
+                            className="setting_dropdown",
+                            placeholder="列名",
+                        ),
+                        dcc.Dropdown(
+                            id="missing-value-dropdown",
+                            options=[
+                                {"label": "リストワイズ削除", "value": "listwise"},
+                                {"label": "平均値代入法", "value": "mean"},
+                                {"label": "最頻値代入法", "value": "mode"},
+                                {"label": "多重代入法", "value": "imputer"},
+                            ],
+                            className="setting_dropdown",
+                            placeholder="手法の選択",
+                        ),
+                        dbc.Button(
+                            id="delete-missing-value-button",
+                            n_clicks=0,
+                            children="実行",
                             className=" text-white setting_buttom",
                             color="secondary",
                         ),
@@ -147,12 +184,18 @@ layout = html.Div(
     Output("table", "data"),
     Output("table", "columns"),
     Output("col-dropdown", "options"),
-    Input("delete-button", "n_clicks"),
+    Output("missing-value-col-dropdown", "options"),
+    Input("delete-col-button", "n_clicks"),
+    Input("delete-missing-value-button", "n_clicks"),
     Input("shared-selected-df", "data"),
     State("col-dropdown", "value"),
+    State("missing-value-col-dropdown", "value"),
+    State("missing-value-dropdown", "value"),
     State("table", "data"),
 )
-def update_table(n, data, cols, table_data):
+def update_table(
+    n, m, data, cols, missing_value_cols, missing_value_method, table_data
+):
     ctx = dash.callback_context
     if not ctx.triggered:
         trigger_id = "No clicks yet"
@@ -165,11 +208,9 @@ def update_table(n, data, cols, table_data):
         columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
         col_options = [{"label": i, "value": i} for i in df.columns]
         data = df.to_dict("records")
-        print("aaa")
-        print(data)
-        return selectedfile[-1], data, columns, col_options
+        return selectedfile[-1], data, columns, col_options, col_options
 
-    elif trigger_id == "delete-button" and n > 0:
+    elif trigger_id == "delete-col-button" and n > 0:
         df = pd.DataFrame(table_data).drop(columns=cols)
         selectedfile = data.split("/")
         columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
@@ -179,9 +220,43 @@ def update_table(n, data, cols, table_data):
             df.to_dict("records"),
             columns,
             col_options,
+            col_options,
         )
+
+    elif trigger_id == "delete-missing-value-button" and m > 0:
+        df = pd.DataFrame(table_data)
+        if missing_value_cols is None:
+            missing_value_cols = df.columns
+        if missing_value_method == "listwise":
+            df = df.dropna(subset=missing_value_cols)
+        elif missing_value_method == "mean":
+            df[missing_value_cols] = df[missing_value_cols].fillna(
+                df[missing_value_cols].mean()
+            )
+        elif missing_value_method == "mode":
+            df[missing_value_cols] = df[missing_value_cols].fillna(
+                df[missing_value_cols].mode().iloc[0]
+            )
+        elif missing_value_method == "imputer":
+            imputer = IterativeImputer()
+            df[missing_value_cols] = pd.DataFrame(
+                imputer.fit_transform(df[missing_value_cols]),
+                columns=df[missing_value_cols].columns,
+            )
+        selectedfile = data.split("/")
+        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        col_options = [{"label": i, "value": i} for i in df.columns]
+        return (
+            selectedfile[-1],
+            df.to_dict("records"),
+            columns,
+            col_options,
+            col_options,
+        )
+
     else:
         return (
+            dash.no_update,
             dash.no_update,
             dash.no_update,
             dash.no_update,

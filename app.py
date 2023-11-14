@@ -19,7 +19,7 @@ page_layouts = {
     "/page2": page2.layout,
     "/page3": page3.layout,
 }
-external_stylesheets = [dbc.themes.BOOTSTRAP, dbc.icons.FONT_AWESOME]
+external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
 app = dash.Dash(
     __name__,
     suppress_callback_exceptions=True,
@@ -49,7 +49,7 @@ sidebar = html.Div(
                                 dbc.DropdownMenuItem("Page 3", href="/page3"),
                             ],
                             label="分析方法の変更",
-                            className="justify-content-start changePageDropDown bg-primary",
+                            className="justify-content-start changePageDropDown",
                             color="secondary",
                         ),
                     ],
