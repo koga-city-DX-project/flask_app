@@ -207,33 +207,35 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
     selected_file_name = f"選択中ファイル：{selected_file[-1]}"
     if cat_pick and cont_pick and cont_pick in df.columns:
         stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
-        stats_df.columns = [
-            "Statistics" if col == cont_pick else col for col in stats_df.columns
+        print("stats_df\n", stats_df)
+        # 列名を変更して表示
+        stats_df_info = stats_df.loc[
+            :,
+            [
+                cat_pick,
+                "count",
+                "mean",
+                "std",
+                "50%",
+            ],
         ]
-
-        # 'Statistics' 列をデータフレームから取り除く
-        stats_df = stats_df.drop("Statistics", axis=1, errors="ignore")
-
-        # データフレームを転置
-        stats_df = stats_df.T.reset_index()
-
-        # 列名を変更
-        stats_df.columns = stats_df.iloc[0]
-
-        # 不要な行を削除
-        stats_df = stats_df.drop(0).reset_index(drop=True)
-
-        # もし "Statistics" 列が存在すれば、それを除外して列名のリストを作成
-        table_columns = [col for col in stats_df.columns if col != "Statistics"]
+        stats_df_info.columns = [
+            cat_pick,
+            "cont",
+            "avg",
+            "std",
+            "mid",
+        ]
+        table_columns = stats_df_info.columns
 
         # dbc.Table.from_dataframe に正しい列名のリストを指定
         table = dbc.Table.from_dataframe(
-            stats_df,
+            stats_df_info,
             columns=table_columns,
             striped=True,
             bordered=True,
             hover=True,
-            style={"height": "70vh"},
+            style={"height": "50vh"},
         )
 
         stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
