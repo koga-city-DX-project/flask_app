@@ -1,6 +1,7 @@
 from typing import List
 
 import dash_bootstrap_components as dbc
+import numpy as np
 import pandas as pd
 from dash import callback, dash_table, dcc, html
 from dash.dependencies import Input, Output, State
@@ -25,10 +26,10 @@ contents = html.Div(
                             [
                                 html.H6(
                                     "基本統計量",
-                                )
+                                ),
                             ],
                             className="align-items-center",
-                        )
+                        ),
                     ],
                 ),
             ],
@@ -148,20 +149,6 @@ settings = html.Div(
                             options=[{"label": x, "value": x} for x in vars_cont],
                             style={"width": "98%"},
                         ),
-                        html.P(
-                            "相関行列の連続変数",
-                            style={"margin-top": "16px", "margin-bottom": "4px"},
-                            className="font-weight-bold",
-                        ),
-                        dcc.Dropdown(
-                            id="page2-corr-picker",
-                            multi=True,
-                            value=vars_cont + ["target"],
-                            options=[
-                                {"label": x, "value": x} for x in vars_cont + ["target"]
-                            ],
-                            style={"width": "98%"},
-                        ),
                         html.Button(
                             id="page2-setting-change-button",
                             n_clicks=0,
@@ -278,7 +265,7 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
     return table, stats_title, selected_file_name
 
 
-# データの欠損値を表示するコールバック
+# データの欠損値と外れ値を表示するコールバック
 @callback(
     Output("page2-defi-table", "children"),
     Output("page2-defi-title", "children"),
@@ -290,11 +277,13 @@ def update_page2_defi_table(n_clicks, data):
         return "", ""
 
     df = pd.read_csv(data)
+
+    # 欠損値の数
     defi_se = df.isnull().sum()
     defi_df = pd.DataFrame(defi_se)
     defi_df_T = defi_df.T
     defi_df_columns = defi_df_T.columns
-    table = dbc.Table.from_dataframe(
+    table_missing = dbc.Table.from_dataframe(
         defi_df_T,
         columns=defi_df_columns,
         striped=True,
@@ -302,8 +291,29 @@ def update_page2_defi_table(n_clicks, data):
         hover=True,
     )
 
-    stats_title = "項目ごとの欠損値の数"
-    return table, stats_title
+    # 外れ値の数 (IQR法を使用)
+    numeric_columns = df.select_dtypes(include=np.number).columns
+    q1 = df[numeric_columns].quantile(0.25)
+    q3 = df[numeric_columns].quantile(0.75)
+    iqr = q3 - q1
+
+    # 外れ値の具体的な値
+    outliers = (df[numeric_columns] < (q1 - 1.5 * iqr)) | (
+        df[numeric_columns] > (q3 + 1.5 * iqr)
+    )
+    outliers_df = df[outliers]
+    table_outliers = dbc.Table.from_dataframe(
+        outliers_df.head(),  # Display only the first few rows of outliers for brevity
+        striped=True,
+        bordered=True,
+        hover=True,
+    )
+
+    # 表示用のタイトル
+    stats_title = "項目ごとの欠損値の数と外れ値"
+
+    # 欠損値のテーブルと外れ値のテーブルを結合して返す
+    return [table_missing, table_outliers], stats_title
 
 
 # 入力データを表示するコールバック
