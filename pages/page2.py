@@ -231,7 +231,6 @@ def update_page2_cont_picker_options(data):
 )
 def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
     df = pd.read_csv(data)
-    print(df)
     selected_file = data.split("/")
     selected_file_name = f"選択中ファイル：{selected_file[-1]}"
     stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
@@ -259,6 +258,11 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
         striped=True,
         bordered=True,
         hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
     )
 
     stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
@@ -303,16 +307,18 @@ def update_page2_defi_table(n_clicks, data):
     )
     outliers_df = df[outliers]
     table_outliers = dbc.Table.from_dataframe(
-        outliers_df.head(),  # Display only the first few rows of outliers for brevity
+        outliers_df,  # Display only the first few rows of outliers for brevity
         striped=True,
         bordered=True,
         hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
     )
-
-    # 表示用のタイトル
     stats_title = "項目ごとの欠損値の数と外れ値"
 
-    # 欠損値のテーブルと外れ値のテーブルを結合して返す
     return [table_missing, table_outliers], stats_title
 
 
