@@ -69,31 +69,73 @@ contents = html.Div(
         dbc.Row(
             [
                 dbc.Col(
-                    html.Div(id="page2-stats-title", className="font-weight-bold"),
+                    [
+                        html.Div(
+                            [
+                                html.P(
+                                    id="page2-stats-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-stats-table"),
+                                    style={"height": "80vh", "overflow": "scroll"},
+                                ),
+                            ],
+                        ),
+                    ],
                     width="6",
                 ),
                 dbc.Col(
-                    html.Div(id="page2-defi-title", className="font-weight-bold"),
+                    [
+                        html.Div(
+                            [
+                                html.P(
+                                    id="page2-defi-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-defi-table"),
+                                    style={"height": "15vh", "overflow": "scroll"},
+                                ),
+                                html.P(
+                                    id="page2-outlier-count-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-outlier-count-table"),
+                                    style={"height": "15vh", "overflow": "scroll"},
+                                ),
+                                html.P(
+                                    id="page2-outlier-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-outlier-table"),
+                                    style={"height": "40vh", "overflow": "scroll"},
+                                ),
+                            ],
+                        ),
+                    ],
                     width="6",
                 ),
             ],
             style={"height": "10%"},
-        ),
-        dbc.Row(
-            [
-                dbc.Col(
-                    html.Div(
-                        html.Table(id="page2-stats-table"),
-                    ),
-                    style={"height": "50vh", "overflow": "scroll"},
-                ),
-                dbc.Col(
-                    html.Div(
-                        html.Table(id="page2-defi-table"),
-                    ),
-                    style={"height": "50vh", "overflow": "scroll"},
-                ),
-            ],
         ),
         html.Hr(),
     ],
@@ -145,7 +187,7 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="page2-my-cont-picker",
                             multi=False,
-                            value="co0",  # ここ注意
+                            value="cont0",  # ここ注意
                             options=[{"label": x, "value": x} for x in vars_cont],
                             style={"width": "98%"},
                         ),
@@ -233,24 +275,46 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
     df = pd.read_csv(data)
     selected_file = data.split("/")
     selected_file_name = f"選択中ファイル：{selected_file[-1]}"
-    stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
-    stats_df_info = stats_df.loc[
-        :,
-        [
+    if pd.api.types.is_numeric_dtype(df[cont_pick]):
+        # 数値型の場合
+        stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
+        stats_df_info = stats_df.loc[
+            :,
+            [
+                cat_pick,
+                "count",
+                "mean",
+                "std",
+                "50%",
+            ],
+        ]
+        stats_df_info.columns = [
             cat_pick,
-            "count",
-            "mean",
-            "std",
-            "50%",
-        ],
-    ]
-    stats_df_info.columns = [
-        cat_pick,
-        "件数",
-        "平均",
-        "標準偏差",
-        "中央値",
-    ]
+            "件数",
+            "平均",
+            "標準偏差",
+            "中央値",
+        ]
+    else:
+        # 数値型でない場合
+        stats_df_info = (
+            df.groupby(cat_pick)[cont_pick]
+            .agg(
+                [
+                    "count",
+                    lambda x: x.mode().iloc[0],
+                    lambda x: (x.mode().count() / x.count()) * 100,
+                ]
+            )
+            .reset_index()
+        )
+
+        stats_df_info.columns = [
+            cat_pick,
+            "件数",
+            "最頻値",
+            "最頻値割合",
+        ]
     table_columns = stats_df_info.columns
     table = dbc.Table.from_dataframe(
         stats_df_info,
@@ -269,7 +333,7 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
     return table, stats_title, selected_file_name
 
 
-# データの欠損値と外れ値を表示するコールバック
+# データの欠損値を表示するコールバック
 @callback(
     Output("page2-defi-table", "children"),
     Output("page2-defi-title", "children"),
@@ -293,7 +357,31 @@ def update_page2_defi_table(n_clicks, data):
         striped=True,
         bordered=True,
         hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
     )
+    stats_title = "項目ごとの欠損値の数"
+
+    return table_missing, stats_title
+
+
+# 外れ値を表示するコールバック
+@callback(
+    Output("page2-outlier-count-table", "children"),
+    Output("page2-outlier-table", "children"),
+    Output("page2-outlier-count-title", "children"),
+    Output("page2-outlier-title", "children"),
+    Input("page2-setting-change-button", "n_clicks"),
+    Input("shared-selected-df", "data"),
+)
+def update_page2_outlier_table(n_clicks, data):
+    if data is None:
+        return "", ""
+
+    df = pd.read_csv(data)
 
     # 外れ値の数 (IQR法を使用)
     numeric_columns = df.select_dtypes(include=np.number).columns
@@ -305,7 +393,25 @@ def update_page2_defi_table(n_clicks, data):
     outliers = (df[numeric_columns] < (q1 - 1.5 * iqr)) | (
         df[numeric_columns] > (q3 + 1.5 * iqr)
     )
-    outliers_df = df[outliers]
+    # 外れ値カウント
+    outliers_count_se = df[outliers].count()
+    outliers_count_df = pd.DataFrame(outliers_count_se).T
+    outliers_count_df_columns = outliers_count_df.columns
+    print(outliers_count_df_columns)
+    table_outliers_count = dbc.Table.from_dataframe(
+        outliers_count_df,
+        columns=outliers_count_df_columns,
+        striped=True,
+        bordered=True,
+        hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
+    )
+    # 具体的な外れ値
+    outliers_df = df[outliers].dropna(how="all")
     table_outliers = dbc.Table.from_dataframe(
         outliers_df,  # Display only the first few rows of outliers for brevity
         striped=True,
@@ -317,9 +423,15 @@ def update_page2_defi_table(n_clicks, data):
             "whiteSpace": "nowrap",
         },
     )
-    stats_title = "項目ごとの欠損値の数と外れ値"
+    outliers_count_title = "外れ値の数"
+    outliers_table_title = "外れ値"
 
-    return [table_missing, table_outliers], stats_title
+    return (
+        table_outliers_count,
+        table_outliers,
+        outliers_count_title,
+        outliers_table_title,
+    )
 
 
 # 入力データを表示するコールバック
