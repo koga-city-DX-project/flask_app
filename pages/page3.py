@@ -12,6 +12,7 @@ sidebarToggleBtn = dbc.Button(
     id="sidebar-button",
 )
 
+
 contents = html.Div(
     [
         dbc.Row(
@@ -134,6 +135,36 @@ settings = html.Div(
                             className=" text-white setting_buttom",
                             color="secondary",
                         ),
+                        html.P(
+                            "スケーリング",
+                            style={
+                                "margin-top": "8px",
+                                "margin-bottom": "4px",
+                            },
+                            className="font-weight-bold",
+                        ),
+                        dcc.Dropdown(
+                            id="scaling-col-dropdown",
+                            multi=True,
+                            className="setting_dropdown",
+                            placeholder="列名",
+                        ),
+                        dcc.Dropdown(
+                            id="scaling-dropdown",
+                            options=[
+                                {"label": "正規化", "value": "normalize"},
+                                {"label": "標準化", "value": "standardize"},
+                            ],
+                            className="setting_dropdown",
+                            placeholder="手法の選択",
+                        ),
+                        dbc.Button(
+                            id="scale-button",
+                            n_clicks=0,
+                            children="実行",
+                            className=" text-white setting_buttom",
+                            color="secondary",
+                        ),
                         html.Hr(),
                         dbc.Input(
                             id="rename_file",
@@ -185,31 +216,51 @@ layout = html.Div(
     Output("table", "columns"),
     Output("col-dropdown", "options"),
     Output("missing-value-col-dropdown", "options"),
+    Output("scaling-col-dropdown", "options"),
     Input("delete-col-button", "n_clicks"),
     Input("delete-missing-value-button", "n_clicks"),
+    Input("scale-button", "n_clicks"),
     Input("shared-selected-df", "data"),
     State("col-dropdown", "value"),
     State("missing-value-col-dropdown", "value"),
     State("missing-value-dropdown", "value"),
+    State("scaling-col-dropdown", "value"),
+    State("scaling-dropdown", "value"),
     State("table", "data"),
 )
 def update_table(
-    n, m, data, cols, missing_value_cols, missing_value_method, table_data
+    n,
+    m,
+    s,
+    data,
+    cols,
+    missing_value_cols,
+    missing_value_method,
+    scaling_cols,
+    scaling_method,
+    table_data,
 ):
     ctx = dash.callback_context
     if not ctx.triggered:
         trigger_id = "No clicks yet"
     else:
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
-
+    # 選択ファイルの読み込み
     if trigger_id == "shared-selected-df":
         df = pd.read_csv(data, low_memory=False)
         selectedfile = data.split("/")
         columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
         col_options = [{"label": i, "value": i} for i in df.columns]
         data = df.to_dict("records")
-        return selectedfile[-1], data, columns, col_options, col_options
-
+        return (
+            selectedfile[-1],
+            data,
+            columns,
+            col_options,
+            col_options,
+            col_options,
+        )
+    # 列削除
     elif trigger_id == "delete-col-button" and n > 0:
         df = pd.DataFrame(table_data).drop(columns=cols)
         selectedfile = data.split("/")
@@ -221,12 +272,15 @@ def update_table(
             columns,
             col_options,
             col_options,
+            col_options,
         )
-
+    # 欠損値処理
     elif trigger_id == "delete-missing-value-button" and m > 0:
         df = pd.DataFrame(table_data)
-        if missing_value_cols is None:
+        print(type(missing_value_cols))
+        if not missing_value_cols:
             missing_value_cols = df.columns
+            print(missing_value_cols)
         if missing_value_method == "listwise":
             df = df.dropna(subset=missing_value_cols)
         elif missing_value_method == "mean":
@@ -252,10 +306,35 @@ def update_table(
             columns,
             col_options,
             col_options,
+            col_options,
         )
-
+    # スケーリング処理
+    elif trigger_id == "scale-button" and s > 0:
+        df = pd.DataFrame(table_data)
+        if not scaling_cols:
+            scaling_cols = df.columns
+        if scaling_method == "normalize":
+            df[scaling_cols] = (df[scaling_cols] - df[scaling_cols].min()) / (
+                df[scaling_cols].max() - df[scaling_cols].min()
+            )
+        elif scaling_method == "standardize":
+            df[scaling_cols] = (df[scaling_cols] - df[scaling_cols].mean()) / df[
+                scaling_cols
+            ].std()
+        selectedfile = data.split("/")
+        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        col_options = [{"label": i, "value": i} for i in df.columns]
+        return (
+            selectedfile[-1],
+            df.to_dict("records"),
+            columns,
+            col_options,
+            col_options,
+            col_options,
+        )
     else:
         return (
+            dash.no_update,
             dash.no_update,
             dash.no_update,
             dash.no_update,
