@@ -1,6 +1,13 @@
 h4, p {
     font-size: 1.1vw;
 }
+.setting_dropdown {
+    width: 98%;
+}
+.setting_buttom {
+    margin-top: 16px;
+    width: 95%;
+}
 
 .topMenu {
     height: 40px;

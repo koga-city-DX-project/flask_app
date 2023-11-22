@@ -177,7 +177,7 @@ settings = html.Div(
                             multi=False,
                             value="cat0",  # ここ注意 出来ればデータによって自動で変更したい
                             options=[{"label": x, "value": x} for x in vars_cat],
-                            style={"width": "98%"},
+                            className="setting_dropdown",
                         ),
                         html.P(
                             "連続変数",
@@ -189,14 +189,15 @@ settings = html.Div(
                             multi=False,
                             value="cont0",  # ここ注意
                             options=[{"label": x, "value": x} for x in vars_cont],
-                            style={"width": "98%"},
+                            className="setting_dropdown",
                         ),
-                        html.Button(
+                        dbc.Button(
                             id="page2-setting-change-button",
                             n_clicks=0,
                             children="設定変更",
                             style={"margin-top": "16px", "width": "95%"},
-                            className="bg-dark text-white ",
+                            className="text-white ",
+                            color="secondary",
                         ),
                         html.Hr(),
                     ],
@@ -397,7 +398,6 @@ def update_page2_outlier_table(n_clicks, data):
     outliers_count_se = df[outliers].count()
     outliers_count_df = pd.DataFrame(outliers_count_se).T
     outliers_count_df_columns = outliers_count_df.columns
-    print(outliers_count_df_columns)
     table_outliers_count = dbc.Table.from_dataframe(
         outliers_count_df,
         columns=outliers_count_df_columns,

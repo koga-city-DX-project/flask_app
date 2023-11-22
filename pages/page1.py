@@ -115,7 +115,7 @@ settings = html.Div(
                             multi=False,
                             value="cat0",
                             options=[{"label": x, "value": x} for x in vars_cat],
-                            style={"width": "98%"},
+                            className="setting_dropdown",
                         ),
                         html.P(
                             "連続変数",
@@ -127,7 +127,7 @@ settings = html.Div(
                             multi=False,
                             value="cont0",
                             options=[{"label": x, "value": x} for x in vars_cont],
-                            style={"width": "98%"},
+                            className="setting_dropdown",
                         ),
                         html.P(
                             "相関行列の連続変数",
@@ -141,21 +141,22 @@ settings = html.Div(
                             options=[
                                 {"label": x, "value": x} for x in vars_cont + ["target"]
                             ],
-                            style={"width": "98%"},
+                            className="setting_dropdown",
                         ),
-                        html.Button(
+                        dbc.Button(
                             id="setting-change-button",
                             n_clicks=0,
                             children="設定変更",
-                            style={"margin-top": "16px", "width": "95%"},
-                            className="bg-dark text-white ",
+                            className=" text-white setting_button",
+                            color="secondary",
+                            style={"margin-top": "16px", "margin-bottom": "4px"},
                         ),
                         html.Hr(),
                     ],
                     className="setting d-grid",
                 ),
             ],
-            style={"height": "50vh", "margin-left": "1px"},
+            style={"height": "25vh", "margin-left": "1px"},
         ),
     ]
 )
@@ -188,9 +189,11 @@ layout = html.Div(
     State("my-cat-picker", "value"),
 )
 def update_bar(n_clicks, data, cat_pick):
-    df = pd.read_csv(data, low_memory=False)
+    df = pd.read_csv(data)
     bar_df = df.groupby(["target", cat_pick]).count()["id"].reset_index()
-    bar_df["target"] = bar_df["target"].replace({0: "target=0", 1: "target=1"})
+    bar_df["target"] = (
+        bar_df["target"].astype(str).replace({"0": "target=0", "1": "target=1"})
+    )
 
     fig_bar = px.bar(
         bar_df,
@@ -225,7 +228,7 @@ def update_bar(n_clicks, data, cat_pick):
     State("my-cont-picker", "value"),
 )
 def update_dist(n_clicks, data, cont_pick):
-    df = pd.read_csv(data, low_memory=False)
+    df = pd.read_csv(data)
     num0 = df[df["target"] == 0][cont_pick].values.tolist()
     num1 = df[df["target"] == 1][cont_pick].values.tolist()
 
@@ -260,7 +263,7 @@ def update_dist(n_clicks, data, cont_pick):
     State("my-corr-picker", "value"),
 )
 def update_corr(n_clicks, file_n_clicks, data, corr_pick):
-    df = pd.read_csv(data, low_memory=False)
+    df = pd.read_csv(data)
     df_corr = df[corr_pick].corr()
     x = list(df_corr.columns)
     y = list(df_corr.index)
@@ -292,7 +295,7 @@ def update_corr(n_clicks, file_n_clicks, data, corr_pick):
     [Input("shared-selected-df", "data")],
 )
 def update_dropdown_options(data):
-    df = pd.read_csv(data, low_memory=False)
+    df = pd.read_csv(data)
     vars_cat = [var for var in df.columns if var.startswith("cat")]
     vars_cont = [var for var in df.columns if var.startswith("cont")]
 
