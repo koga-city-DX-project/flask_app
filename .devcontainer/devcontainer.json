@@ -58,5 +58,5 @@
 		}
 	},
 	"workspaceMount": "source=/home/kawaguchi880/flask_app,target=/usr/src/,type=bind,consistency=cached",
-	"postCreateCommand": "pip install -r requirements.txt"
+	"postCreateCommand": "/bin/sh .devcontainer/postCreateCommand.sh"
 }

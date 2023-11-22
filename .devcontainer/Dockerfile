@@ -9,5 +9,3 @@ RUN apt install -y git
 # upgrade pip
 RUN pip install --upgrade pip
 
-RUN mkdir data
-RUN mkdir data/save
