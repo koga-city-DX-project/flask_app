@@ -49,7 +49,10 @@ contents = html.Div(
                                 columns=[],
                                 data=[],
                                 virtualization=True,
+                                page_current=0,
+                                page_size=100,
                                 style_table={"overflowX": "auto"},
+                                page_action="custom",
                             ),
                         ],
                     ),
@@ -221,6 +224,8 @@ layout = html.Div(
     Input("delete-missing-value-button", "n_clicks"),
     Input("scale-button", "n_clicks"),
     Input("shared-selected-df", "data"),
+    Input("table", "page_current"),
+    Input("table", "page_size"),
     State("col-dropdown", "value"),
     State("missing-value-col-dropdown", "value"),
     State("missing-value-dropdown", "value"),
@@ -233,6 +238,8 @@ def update_table(
     m,
     s,
     data,
+    page_current,
+    page_size,
     cols,
     missing_value_cols,
     missing_value_method,
@@ -248,10 +255,15 @@ def update_table(
     # 選択ファイルの読み込み
     if trigger_id == "shared-selected-df":
         df = cudf.read_csv(data, dtype=object)
+        print(df)
         selectedfile = data.split("/")
         columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
         col_options = [{"label": i, "value": i} for i in df.columns]
-        data = df.to_dict("records")
+        print(page_size)
+        print(type(page_size))
+        data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
         return (
             selectedfile[-1],
             data,
