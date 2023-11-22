@@ -48,11 +48,16 @@ contents = html.Div(
                                 id="table",
                                 columns=[],
                                 data=[],
+                                editable=True,
                                 virtualization=True,
                                 page_current=0,
                                 page_size=100,
                                 style_table={"overflowX": "auto"},
                                 page_action="custom",
+                                style_header={
+                                    "backgroundColor": "rgb(44,62,80)",
+                                    "color": "white",
+                                },
                             ),
                         ],
                     ),
@@ -255,12 +260,12 @@ def update_table(
     # 選択ファイルの読み込み
     if trigger_id == "shared-selected-df":
         df = cudf.read_csv(data, dtype=object)
-        print(df)
         selectedfile = data.split("/")
-        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        columns = [
+            {"name": i, "id": j, "editable": True, "renamable": True}
+            for i, j in zip(df, df.columns)
+        ]
         col_options = [{"label": i, "value": i} for i in df.columns]
-        print(page_size)
-        print(type(page_size))
         data = df.iloc[
             page_current * page_size : (page_current + 1) * page_size  # NOQA
         ].to_dict("records")
