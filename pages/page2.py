@@ -1,8 +1,9 @@
 from typing import List
 
 import dash_bootstrap_components as dbc
+import numpy as np
 import pandas as pd
-from dash import callback, dcc, html
+from dash import callback, dash_table, dcc, html
 from dash.dependencies import Input, Output, State
 
 vars_cat: List[str] = []
@@ -19,16 +20,16 @@ contents = html.Div(
     [
         dbc.Row(
             [
-                dbc.Col(
+                dbc.Col(  # タイトル
                     [
                         html.Div(
                             [
                                 html.H6(
                                     "基本統計量",
-                                )
+                                ),
                             ],
                             className="align-items-center",
-                        )
+                        ),
                     ],
                 ),
             ],
@@ -36,32 +37,107 @@ contents = html.Div(
         ),
         html.Div(id="page2-selected-file", className="font-weight-bold"),
         dbc.Row(
-            [
-                dbc.Col(
-                    html.Div(id="page2-stats-title", className="font-weight-bold"),
-                    width=12,
-                ),
-            ],
-            style={
-                "height": "10%",
-            },
+            html.Div(
+                [
+                    html.P(
+                        id="page2-matrix-selected-file",
+                        className="font-weight-bold",
+                    ),
+                    dcc.Loading(
+                        id="loading",
+                        type="circle",
+                        className="dash-loading-callback",
+                        children=[
+                            dash_table.DataTable(
+                                id="table2",
+                                columns=[],
+                                data=[],
+                                virtualization=True,
+                                style_table={
+                                    "overflowX": "auto",
+                                    "overflowY": "auto",
+                                    "height": "300px",
+                                },
+                            ),
+                        ],
+                    ),
+                ]
+            ),
+            style={"margin": "8px", "height": "30%"},
         ),
+        html.Hr(),
         dbc.Row(
             [
                 dbc.Col(
-                    html.Div(
-                        html.Table(id="page2-stats-table"),
-                    ),
-                    width=12,
+                    [
+                        html.Div(
+                            [
+                                html.P(
+                                    id="page2-stats-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-stats-table"),
+                                    style={"height": "80vh", "overflow": "scroll"},
+                                ),
+                            ],
+                        ),
+                    ],
+                    width="6",
+                ),
+                dbc.Col(
+                    [
+                        html.Div(
+                            [
+                                html.P(
+                                    id="page2-defi-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-defi-table"),
+                                    style={"height": "15vh", "overflow": "scroll"},
+                                ),
+                                html.P(
+                                    id="page2-outlier-count-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-outlier-count-table"),
+                                    style={"height": "15vh", "overflow": "scroll"},
+                                ),
+                                html.P(
+                                    id="page2-outlier-title",
+                                    className="font-weight-bold",
+                                    style={
+                                        "margin-top": "16px",
+                                        "margin-bottom": "4px",
+                                    },
+                                ),
+                                html.P(
+                                    html.Table(id="page2-outlier-table"),
+                                    style={"height": "40vh", "overflow": "scroll"},
+                                ),
+                            ],
+                        ),
+                    ],
+                    width="6",
                 ),
             ],
-            style={"overflow": "scroll"},
+            style={"height": "10%"},
         ),
         html.Hr(),
-        html.Div(
-            "↓ここから下に別の結果↓敢えて画面の大きさの50%の大きさでdivタグを取っている",
-            style={"height": "50vh"},
-        ),
     ],
 )
 
@@ -99,7 +175,7 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="page2-my-cat-picker",
                             multi=False,
-                            value="cat0",
+                            value="cat0",  # ここ注意 出来ればデータによって自動で変更したい
                             options=[{"label": x, "value": x} for x in vars_cat],
                             className="setting_dropdown",
                         ),
@@ -111,7 +187,7 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="page2-my-cont-picker",
                             multi=False,
-                            value="cont0",
+                            value="cont0",  # ここ注意
                             options=[{"label": x, "value": x} for x in vars_cont],
                             className="setting_dropdown",
                         ),
@@ -165,9 +241,7 @@ def update_page2_cat_picker_options(data):
         return []
 
     df = pd.read_csv(data)
-    vars_cat = [var for var in df.columns if var.startswith("cat")]
-
-    options_cat = [{"label": x, "value": x} for x in vars_cat]
+    options_cat = [{"label": col, "value": col} for col in df.columns]
 
     return options_cat
 
@@ -182,9 +256,8 @@ def update_page2_cont_picker_options(data):
         return []
 
     df = pd.read_csv(data)
-    vars_cont = [var for var in df.columns if var.startswith("cont")]
 
-    options_cont = [{"label": x, "value": x} for x in vars_cont]
+    options_cont = [{"label": x, "value": x} for x in df.columns]
 
     return options_cont
 
@@ -200,45 +273,178 @@ def update_page2_cont_picker_options(data):
     State("page2-my-cont-picker", "value"),
 )
 def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
+    df = pd.read_csv(data)
+    selected_file = data.split("/")
+    selected_file_name = f"選択中ファイル：{selected_file[-1]}"
+    if pd.api.types.is_numeric_dtype(df[cont_pick]):
+        # 数値型の場合
+        stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
+        stats_df_info = stats_df.loc[
+            :,
+            [
+                cat_pick,
+                "count",
+                "mean",
+                "std",
+                "50%",
+            ],
+        ]
+        stats_df_info.columns = [
+            cat_pick,
+            "件数",
+            "平均",
+            "標準偏差",
+            "中央値",
+        ]
+    else:
+        # 数値型でない場合
+        stats_df_info = (
+            df.groupby(cat_pick)[cont_pick]
+            .agg(
+                [
+                    "count",
+                    lambda x: x.mode().iloc[0],
+                    lambda x: (x.mode().count() / x.count()) * 100,
+                ]
+            )
+            .reset_index()
+        )
+
+        stats_df_info.columns = [
+            cat_pick,
+            "件数",
+            "最頻値",
+            "最頻値割合",
+        ]
+    table_columns = stats_df_info.columns
+    table = dbc.Table.from_dataframe(
+        stats_df_info,
+        columns=table_columns,
+        striped=True,
+        bordered=True,
+        hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
+    )
+
+    stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
+    return table, stats_title, selected_file_name
+
+
+# データの欠損値を表示するコールバック
+@callback(
+    Output("page2-defi-table", "children"),
+    Output("page2-defi-title", "children"),
+    Input("page2-setting-change-button", "n_clicks"),
+    Input("shared-selected-df", "data"),
+)
+def update_page2_defi_table(n_clicks, data):
     if data is None:
         return "", ""
 
     df = pd.read_csv(data)
-    selected_file = data.split("/")
-    selected_file_name = f"選択中ファイル：{selected_file[-1]}"
-    if cat_pick and cont_pick and cont_pick in df.columns:
-        stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
-        stats_df.columns = [
-            "Statistics" if col == cont_pick else col for col in stats_df.columns
-        ]
 
-        # 'Statistics' 列をデータフレームから取り除く
-        stats_df = stats_df.drop("Statistics", axis=1, errors="ignore")
+    # 欠損値の数
+    defi_se = df.isnull().sum()
+    defi_df = pd.DataFrame(defi_se)
+    defi_df_T = defi_df.T
+    defi_df_columns = defi_df_T.columns
+    table_missing = dbc.Table.from_dataframe(
+        defi_df_T,
+        columns=defi_df_columns,
+        striped=True,
+        bordered=True,
+        hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
+    )
+    stats_title = "項目ごとの欠損値の数"
 
-        # データフレームを転置
-        stats_df = stats_df.T.reset_index()
+    return table_missing, stats_title
 
-        # 列名を変更
-        stats_df.columns = stats_df.iloc[0]
 
-        # 不要な行を削除
-        stats_df = stats_df.drop(0).reset_index(drop=True)
+# 外れ値を表示するコールバック
+@callback(
+    Output("page2-outlier-count-table", "children"),
+    Output("page2-outlier-table", "children"),
+    Output("page2-outlier-count-title", "children"),
+    Output("page2-outlier-title", "children"),
+    Input("page2-setting-change-button", "n_clicks"),
+    Input("shared-selected-df", "data"),
+)
+def update_page2_outlier_table(n_clicks, data):
+    if data is None:
+        return "", ""
 
-        # もし "Statistics" 列が存在すれば、それを除外して列名のリストを作成
-        table_columns = [col for col in stats_df.columns if col != "Statistics"]
+    df = pd.read_csv(data)
 
-        # dbc.Table.from_dataframe に正しい列名のリストを指定
-        table = dbc.Table.from_dataframe(
-            stats_df,
-            columns=table_columns,
-            striped=True,
-            bordered=True,
-            hover=True,
-            style={"height": "70vh"},
-        )
+    # 外れ値の数 (IQR法を使用)
+    numeric_columns = df.select_dtypes(include=np.number).columns
+    q1 = df[numeric_columns].quantile(0.25)
+    q3 = df[numeric_columns].quantile(0.75)
+    iqr = q3 - q1
 
-        stats_title = f"{cat_pick}ごとの{cont_pick}の基本統計量"
+    # 外れ値の具体的な値
+    outliers = (df[numeric_columns] < (q1 - 1.5 * iqr)) | (
+        df[numeric_columns] > (q3 + 1.5 * iqr)
+    )
+    # 外れ値カウント
+    outliers_count_se = df[outliers].count()
+    outliers_count_df = pd.DataFrame(outliers_count_se).T
+    outliers_count_df_columns = outliers_count_df.columns
+    print(outliers_count_df_columns)
+    table_outliers_count = dbc.Table.from_dataframe(
+        outliers_count_df,
+        columns=outliers_count_df_columns,
+        striped=True,
+        bordered=True,
+        hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
+    )
+    # 具体的な外れ値
+    outliers_df = df[outliers].dropna(how="all")
+    table_outliers = dbc.Table.from_dataframe(
+        outliers_df,  # Display only the first few rows of outliers for brevity
+        striped=True,
+        bordered=True,
+        hover=True,
+        style={
+            "writingMode": "horizontal-rl",
+            "textOrientation": "mixed",
+            "whiteSpace": "nowrap",
+        },
+    )
+    outliers_count_title = "外れ値の数"
+    outliers_table_title = "外れ値"
 
-        return table, stats_title, selected_file_name
+    return (
+        table_outliers_count,
+        table_outliers,
+        outliers_count_title,
+        outliers_table_title,
+    )
 
-    return "", "", ""
+
+# 入力データを表示するコールバック
+@callback(
+    Output("page2-matrix-selected-file", "children"),
+    Output("table2", "columns"),
+    Output("table2", "data"),
+    Input("shared-selected-df", "data"),
+)
+def update_table(data):
+    df = pd.read_csv(data, low_memory=False)
+    selectedfile = data.split("/")
+    columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+    data = df.to_dict("records")
+    return selectedfile[-1], columns, data
