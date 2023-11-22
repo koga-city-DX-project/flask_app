@@ -127,3 +127,5 @@ __pycache__/
 
 # Cython
 cython_debug/
+
+/data/*

@@ -1,11 +1,41 @@
 {
 	"name": "flask-python3",
-    "dockerComposeFile": "../compose.yml",
-    "service": "flask_app", 
+	"build": {
+        "dockerfile": "Dockerfile"
+    },
 	"workspaceFolder": "/usr/src/",
-	"shutdownAction": "stopCompose",
+	"runArgs": ["--gpus", "all"],
 	"customizations": {
 		"vscode": {
+			"settings": {
+				"editor.minimap.enabled": false, // ミニマップを非表示にする
+				"editor.renderControlCharacters": true, // 制御文字を表示する
+				"editor.suggestSelection": "first", // サジェスト一覧の初期表示項目設定
+				"breadcrumbs.enabled": true, // ファイルのパンくずリストを表示する
+				"files.insertFinalNewline": true, // ファイルの末尾を改行で終わらせる
+				"editor.fontFamily": "'Fira Code', Hasklig, Consolas, 'Courier New', monospace",
+				"editor.fontLigatures": true, // 合字を有効化
+				"editor.fontSize": 17, // フォントサイズを変更
+				"editor.renderLineHighlight": "all", // 選択行の行番号をハイライトする
+				"editor.cursorBlinking": "smooth", // カーソルが滑らかに点滅するように
+				"editor.cursorSmoothCaretAnimation": "on", // カーソルの点滅をアニメーション表示する
+				"editor.cursorStyle": "block", // カーソルの外観をブロックに変更
+				"files.autoGuessEncoding": true, // ファイルの自動エンコードを実施
+				"window.zoomLevel": -2, // 画面全体の表示サイズはデフォルト
+				"editor.bracketPairColorization.enabled": true, // 括弧の対応を色付ける
+				"[python]": {
+				  "editor.defaultFormatter": "ms-python.black-formatter",
+				  "editor.formatOnSave": true,
+				  "editor.codeActionsOnSave": {
+					"source.organizeImports": true
+				  }
+				},
+				"isort.args": ["--profile", "black"],
+				"flake8.args": ["--max-line-length=100", "--max-complexity=10"],
+				"csscomb.formatOnSave": true,
+				"python.globalModuleInstallation": false,
+				"python.languageServer": "Default"
+			},
 			"extensions": [
 				"ms-python.python",
 				"mhutchie.git-graph",
@@ -16,12 +46,17 @@
 				"streetsidesoftware.code-spell-checker",
 				"esbenp.prettier-vscode",
 				"ms-python.vscode-pylance",
-				"ms-python.mypy-type-checker",
 				"ms-python.isort",
 				"ms-python.black-formatter",
-				"ms-python.flake8"
+				"ms-python.flake8",
+				"ionutvmi.path-autocomplete",
+				"ecmel.vscode-html-css",
+				"mrmlnc.vscode-csscomb",
+				"matangover.mypy",
+				"mechatroner.rainbow-csv"
 			]
 		}
-	}
-
+	},
+	"workspaceMount": "source=/home/kawaguchi880/flask_app,target=/usr/src/,type=bind,consistency=cached",
+	"postCreateCommand": "/bin/sh .devcontainer/postCreateCommand.sh"
 }

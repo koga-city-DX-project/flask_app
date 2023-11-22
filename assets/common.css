@@ -1,0 +1,87 @@
+h4, p {
+    font-size: 1.1vw;
+}
+.setting_dropdown {
+    width: 98%;
+}
+.setting_buttom {
+    margin-top: 16px;
+    width: 95%;
+}
+
+.topMenu {
+    height: 40px;
+}
+
+.setting {
+    padding: 0 0 0 0;
+}
+
+.dash-loading-callback {
+    -webkit-animation: fadein .5s ease-in 1s forwards; /* Safari and Chrome */
+
+/* 他のスタイル設定 */
+    /* アニメーションを1秒遅らせてから0.5秒かけてフェードインさせる */
+       -moz-animation: fadein .5s ease-in 1s forwards; /* Firefox */
+         -o-animation: fadein .5s ease-in 1s forwards; /* Opera */
+            animation: fadein .5s ease-in 1s forwards;
+}
+
+.sidebar {
+    height: 50vh;
+}
+
+#sidebar-button {
+    padding: 6px 1vw;
+}
+
+
+#setting_Col {
+    padding: 0;
+}
+/* Medium devices (tablets, 768px and up) */
+@media (max-width: 992px) {
+    .changePageDropDown button {
+        font-size: .7em;
+        margin: 4px 0;
+    }
+    /* ファイルフィールド内のテキスト */
+    #input div {
+        font-size: .7em;
+    }
+    /* ファイル変更 */
+    #file-select-button {
+        font-size: .7em;
+    }
+    /* 選択ファイル */
+    .form-select {
+        font-size: .7em;
+    }
+    #download-button {
+        font-size: .7em;
+    }
+    .setting {
+        font-size: .7em;
+    }
+    .form-control {
+        font-size: .7em;
+    }
+    h6 {
+        font-size: .8em;
+        margin: 1.5vw auto;
+    }
+}
+
+@media (min-width: 992px) {
+    h6 {
+        font-size: 1em;
+        margin: 1vw auto;
+    }
+}
+
+@media (min-width: 1440px) {
+    h6 {
+        font-size: 1.2em;
+        margin: .6vw auto;
+    }
+}
