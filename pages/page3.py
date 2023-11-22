@@ -1,6 +1,6 @@
+import cudf
 import dash
 import dash_bootstrap_components as dbc
-import pandas as pd
 from dash import Input, Output, State, callback, dash_table, dcc, html
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer
@@ -247,7 +247,7 @@ def update_table(
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     # 選択ファイルの読み込み
     if trigger_id == "shared-selected-df":
-        df = pd.read_csv(data, low_memory=False)
+        df = cudf.read_csv(data, dtype=object)
         selectedfile = data.split("/")
         columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
         col_options = [{"label": i, "value": i} for i in df.columns]
@@ -262,7 +262,7 @@ def update_table(
         )
     # 列削除
     elif trigger_id == "delete-col-button" and n > 0:
-        df = pd.DataFrame(table_data).drop(columns=cols)
+        df = cudf.DataFrame(table_data, dtype=object).drop(columns=cols)
         selectedfile = data.split("/")
         columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
         col_options = [{"label": i, "value": i} for i in df.columns]
@@ -276,7 +276,7 @@ def update_table(
         )
     # 欠損値処理
     elif trigger_id == "delete-missing-value-button" and m > 0:
-        df = pd.DataFrame(table_data)
+        df = cudf.DataFrame(table_data, dtype=object)
         print(type(missing_value_cols))
         if not missing_value_cols:
             missing_value_cols = df.columns
@@ -293,7 +293,7 @@ def update_table(
             )
         elif missing_value_method == "imputer":
             imputer = IterativeImputer()
-            df[missing_value_cols] = pd.DataFrame(
+            df[missing_value_cols] = cudf.DataFrame(
                 imputer.fit_transform(df[missing_value_cols]),
                 columns=df[missing_value_cols].columns,
             )
@@ -310,7 +310,7 @@ def update_table(
         )
     # スケーリング処理
     elif trigger_id == "scale-button" and s > 0:
-        df = pd.DataFrame(table_data)
+        df = cudf.DataFrame(table_data, dtype=object)
         if not scaling_cols:
             scaling_cols = df.columns
         if scaling_method == "normalize":
@@ -354,7 +354,7 @@ def update_table(
 )
 def save_table(n_clicks, table_data, file_rename_value, file_current_name):
     if n_clicks > 0:
-        df = pd.DataFrame(table_data)
+        df = cudf.DataFrame(table_data, dtype=object)
         if file_rename_value:
             filename = f"{file_rename_value}.csv"
         else:

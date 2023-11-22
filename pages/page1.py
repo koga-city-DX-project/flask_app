@@ -1,8 +1,8 @@
 from typing import List
 
+import cudf
 import dash_bootstrap_components as dbc
 import numpy as np
-import pandas as pd
 import plotly.express as px
 import plotly.figure_factory as ff
 from dash import Input, Output, State, callback, dcc, html
@@ -189,9 +189,11 @@ layout = html.Div(
     State("my-cat-picker", "value"),
 )
 def update_bar(n_clicks, data, cat_pick):
-    df = pd.read_csv(data, low_memory=False)
+    df = cudf.read_csv(data)
     bar_df = df.groupby(["target", cat_pick]).count()["id"].reset_index()
-    bar_df["target"] = bar_df["target"].replace({0: "target=0", 1: "target=1"})
+    bar_df["target"] = (
+        bar_df["target"].astype(str).replace({"0": "target=0", "1": "target=1"})
+    )
 
     fig_bar = px.bar(
         bar_df,
@@ -226,7 +228,7 @@ def update_bar(n_clicks, data, cat_pick):
     State("my-cont-picker", "value"),
 )
 def update_dist(n_clicks, data, cont_pick):
-    df = pd.read_csv(data, low_memory=False)
+    df = cudf.read_csv(data, dtype=object)
     num0 = df[df["target"] == 0][cont_pick].values.tolist()
     num1 = df[df["target"] == 1][cont_pick].values.tolist()
 
@@ -261,7 +263,7 @@ def update_dist(n_clicks, data, cont_pick):
     State("my-corr-picker", "value"),
 )
 def update_corr(n_clicks, file_n_clicks, data, corr_pick):
-    df = pd.read_csv(data, low_memory=False)
+    df = cudf.read_csv(data, dtype=object)
     df_corr = df[corr_pick].corr()
     x = list(df_corr.columns)
     y = list(df_corr.index)
@@ -293,7 +295,7 @@ def update_corr(n_clicks, file_n_clicks, data, corr_pick):
     [Input("shared-selected-df", "data")],
 )
 def update_dropdown_options(data):
-    df = pd.read_csv(data, low_memory=False)
+    df = cudf.read_csv(data, dtype=object)
     vars_cat = [var for var in df.columns if var.startswith("cat")]
     vars_cont = [var for var in df.columns if var.startswith("cont")]
 
