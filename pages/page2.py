@@ -398,7 +398,6 @@ def update_page2_outlier_table(n_clicks, data):
     outliers_count_se = df[outliers].count()
     outliers_count_df = pd.DataFrame(outliers_count_se).T
     outliers_count_df_columns = outliers_count_df.columns
-    print(outliers_count_df_columns)
     table_outliers_count = dbc.Table.from_dataframe(
         outliers_count_df,
         columns=outliers_count_df_columns,

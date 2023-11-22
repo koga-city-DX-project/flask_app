@@ -45,7 +45,7 @@ contents = html.Div(
                         className="dash-loading-callback",
                         children=[
                             dash_table.DataTable(
-                                id="table",
+                                id="page3-table",
                                 columns=[],
                                 data=[],
                                 editable=True,
@@ -220,8 +220,8 @@ layout = html.Div(
 
 @callback(
     Output("selected-file-title", "children"),
-    Output("table", "data"),
-    Output("table", "columns"),
+    Output("page3-table", "data"),
+    Output("page3-table", "columns"),
     Output("col-dropdown", "options"),
     Output("missing-value-col-dropdown", "options"),
     Output("scaling-col-dropdown", "options"),
@@ -229,14 +229,14 @@ layout = html.Div(
     Input("delete-missing-value-button", "n_clicks"),
     Input("scale-button", "n_clicks"),
     Input("shared-selected-df", "data"),
-    Input("table", "page_current"),
-    Input("table", "page_size"),
+    Input("page3-table", "page_current"),
+    Input("page3-table", "page_size"),
     State("col-dropdown", "value"),
     State("missing-value-col-dropdown", "value"),
     State("missing-value-dropdown", "value"),
     State("scaling-col-dropdown", "value"),
     State("scaling-dropdown", "value"),
-    State("table", "data"),
+    State("page3-table", "data"),
 )
 def update_table(
     n,
@@ -364,7 +364,7 @@ def update_table(
     Output("store-data", "children"),
     [Input("save-button", "n_clicks")],
     [
-        State("table", "data"),
+        State("page3-table", "data"),
         State("rename_file", "value"),
         State("uploaded-files-dropdown", "value"),
     ],
