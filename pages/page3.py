@@ -279,13 +279,19 @@ def update_table(
         )
     # 列削除
     elif trigger_id == "delete-col-button" and n > 0:
-        df = cudf.DataFrame(table_data, dtype=object).drop(columns=cols)
+        df = cudf.DataFrame(table_data).drop(columns=cols)
         selectedfile = data.split("/")
-        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        columns = [
+            {"name": i, "id": j, "editable": True, "renamable": True}
+            for i, j in zip(df, df.columns)
+        ]
         col_options = [{"label": i, "value": i} for i in df.columns]
+        data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
         return (
             selectedfile[-1],
-            df.to_dict("records"),
+            data,
             columns,
             col_options,
             col_options,
@@ -293,33 +299,41 @@ def update_table(
         )
     # 欠損値処理
     elif trigger_id == "delete-missing-value-button" and m > 0:
-        df = cudf.DataFrame(table_data, dtype=object)
-        print(type(missing_value_cols))
+        df = cudf.DataFrame(table_data)
         if not missing_value_cols:
             missing_value_cols = df.columns
+            print("欠損値なし")
             print(missing_value_cols)
         if missing_value_method == "listwise":
             df = df.dropna(subset=missing_value_cols)
         elif missing_value_method == "mean":
+            df[missing_value_cols] = df[missing_value_cols].astype(float)
             df[missing_value_cols] = df[missing_value_cols].fillna(
                 df[missing_value_cols].mean()
             )
+
         elif missing_value_method == "mode":
             df[missing_value_cols] = df[missing_value_cols].fillna(
                 df[missing_value_cols].mode().iloc[0]
             )
         elif missing_value_method == "imputer":
-            imputer = IterativeImputer()
+            imputer = IterativeImputer(max_iter=10, random_state=0)
             df[missing_value_cols] = cudf.DataFrame(
                 imputer.fit_transform(df[missing_value_cols]),
                 columns=df[missing_value_cols].columns,
             )
         selectedfile = data.split("/")
-        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        columns = [
+            {"name": i, "id": j, "editable": True, "renamable": True}
+            for i, j in zip(df, df.columns)
+        ]
         col_options = [{"label": i, "value": i} for i in df.columns]
+        data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
         return (
             selectedfile[-1],
-            df.to_dict("records"),
+            data,
             columns,
             col_options,
             col_options,
@@ -331,19 +345,27 @@ def update_table(
         if not scaling_cols:
             scaling_cols = df.columns
         if scaling_method == "normalize":
+            df[scaling_cols] = df[scaling_cols].astype(float)
             df[scaling_cols] = (df[scaling_cols] - df[scaling_cols].min()) / (
                 df[scaling_cols].max() - df[scaling_cols].min()
             )
         elif scaling_method == "standardize":
+            df[scaling_cols] = df[scaling_cols].astype(float)
             df[scaling_cols] = (df[scaling_cols] - df[scaling_cols].mean()) / df[
                 scaling_cols
             ].std()
         selectedfile = data.split("/")
-        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        columns = [
+            {"name": i, "id": j, "editable": True, "renamable": True}
+            for i, j in zip(df, df.columns)
+        ]
         col_options = [{"label": i, "value": i} for i in df.columns]
+        data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
         return (
             selectedfile[-1],
-            df.to_dict("records"),
+            data,
             columns,
             col_options,
             col_options,
