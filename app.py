@@ -10,7 +10,7 @@ from dash import dcc, html
 from dash.dependencies import Input, Output, State
 from dash.exceptions import PreventUpdate
 
-from pages import home, page1, page2, page3
+from pages import home, page1, page2, page3, page4
 
 uploaded_files_dict = {}
 page_layouts = {
@@ -18,6 +18,7 @@ page_layouts = {
     "/page1": page1.layout,
     "/page2": page2.layout,
     "/page3": page3.layout,
+    "/page4": page4.layout,
 }
 external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
 app = dash.Dash(
@@ -44,9 +45,10 @@ sidebar = html.Div(
                         dbc.DropdownMenu(
                             children=[
                                 dbc.DropdownMenuItem("home", href="/"),
-                                dbc.DropdownMenuItem("Page 1", href="/page1"),
-                                dbc.DropdownMenuItem("Page 2", href="/page2"),
-                                dbc.DropdownMenuItem("Page 3", href="/page3"),
+                                dbc.DropdownMenuItem("sample", href="/page1"),
+                                dbc.DropdownMenuItem("データ分析", href="/page2"),
+                                dbc.DropdownMenuItem("データ加工・編集", href="/page3"),
+                                dbc.DropdownMenuItem("モデルの実行", href="/page4"),
                             ],
                             label="分析方法の変更",
                             className="justify-content-start changePageDropDown",

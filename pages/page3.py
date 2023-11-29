@@ -99,7 +99,7 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         dcc.Dropdown(
-                            id="col-dropdown",
+                            id="delete-col-dropdown",
                             multi=True,
                             className="setting_dropdown",
                             placeholder="列名",
@@ -222,7 +222,7 @@ layout = html.Div(
     Output("selected-file-title", "children"),
     Output("page3-table", "data"),
     Output("page3-table", "columns"),
-    Output("col-dropdown", "options"),
+    Output("delete-col-dropdown", "options"),
     Output("missing-value-col-dropdown", "options"),
     Output("scaling-col-dropdown", "options"),
     Input("delete-col-button", "n_clicks"),
@@ -231,12 +231,11 @@ layout = html.Div(
     Input("shared-selected-df", "data"),
     Input("page3-table", "page_current"),
     Input("page3-table", "page_size"),
-    State("col-dropdown", "value"),
+    State("delete-col-dropdown", "value"),
     State("missing-value-col-dropdown", "value"),
     State("missing-value-dropdown", "value"),
     State("scaling-col-dropdown", "value"),
     State("scaling-dropdown", "value"),
-    State("page3-table", "data"),
 )
 def update_table(
     n,
@@ -250,8 +249,8 @@ def update_table(
     missing_value_method,
     scaling_cols,
     scaling_method,
-    table_data,
 ):
+    global aaa
     ctx = dash.callback_context
     if not ctx.triggered:
         trigger_id = "No clicks yet"
@@ -259,7 +258,28 @@ def update_table(
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     # 選択ファイルの読み込み
     if trigger_id == "shared-selected-df":
-        df = cudf.read_csv(data, dtype=object)
+        df = cudf.read_csv(data)
+        selectedfile = data.split("/")
+        columns = [
+            {"name": i, "id": j, "editable": True, "renamable": True}
+            for i, j in zip(df, df.columns)
+        ]
+        col_options = [{"label": i, "value": i} for i in df.columns]
+        aaa = df
+        display_data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
+        return (
+            selectedfile[-1],
+            display_data,
+            columns,
+            col_options,
+            col_options,
+            col_options,
+        )
+    # 列削除
+    elif trigger_id == "delete-col-button" and n > 0:
+        df = cudf.DataFrame(aaa).drop(columns=cols)
         selectedfile = data.split("/")
         columns = [
             {"name": i, "id": j, "editable": True, "renamable": True}
@@ -269,6 +289,7 @@ def update_table(
         data = df.iloc[
             page_current * page_size : (page_current + 1) * page_size  # NOQA
         ].to_dict("records")
+        aaa = df
         return (
             selectedfile[-1],
             data,
@@ -277,49 +298,43 @@ def update_table(
             col_options,
             col_options,
         )
-    # 列削除
-    elif trigger_id == "delete-col-button" and n > 0:
-        df = cudf.DataFrame(table_data, dtype=object).drop(columns=cols)
-        selectedfile = data.split("/")
-        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
-        col_options = [{"label": i, "value": i} for i in df.columns]
-        return (
-            selectedfile[-1],
-            df.to_dict("records"),
-            columns,
-            col_options,
-            col_options,
-            col_options,
-        )
     # 欠損値処理
     elif trigger_id == "delete-missing-value-button" and m > 0:
-        df = cudf.DataFrame(table_data, dtype=object)
-        print(type(missing_value_cols))
+        df = cudf.DataFrame(aaa)
+        print(df)
         if not missing_value_cols:
             missing_value_cols = df.columns
-            print(missing_value_cols)
         if missing_value_method == "listwise":
             df = df.dropna(subset=missing_value_cols)
         elif missing_value_method == "mean":
+            df[missing_value_cols] = df[missing_value_cols].astype(float)
             df[missing_value_cols] = df[missing_value_cols].fillna(
                 df[missing_value_cols].mean()
             )
+
         elif missing_value_method == "mode":
             df[missing_value_cols] = df[missing_value_cols].fillna(
                 df[missing_value_cols].mode().iloc[0]
             )
         elif missing_value_method == "imputer":
-            imputer = IterativeImputer()
+            imputer = IterativeImputer(max_iter=10, random_state=0)
             df[missing_value_cols] = cudf.DataFrame(
                 imputer.fit_transform(df[missing_value_cols]),
                 columns=df[missing_value_cols].columns,
             )
         selectedfile = data.split("/")
-        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        columns = [
+            {"name": i, "id": j, "editable": True, "renamable": True}
+            for i, j in zip(df, df.columns)
+        ]
         col_options = [{"label": i, "value": i} for i in df.columns]
+        data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
+        aaa = df
         return (
             selectedfile[-1],
-            df.to_dict("records"),
+            data,
             columns,
             col_options,
             col_options,
@@ -327,32 +342,45 @@ def update_table(
         )
     # スケーリング処理
     elif trigger_id == "scale-button" and s > 0:
-        df = cudf.DataFrame(table_data, dtype=object)
+        df = cudf.DataFrame(aaa)
         if not scaling_cols:
             scaling_cols = df.columns
         if scaling_method == "normalize":
+            df[scaling_cols] = df[scaling_cols].astype(float)
             df[scaling_cols] = (df[scaling_cols] - df[scaling_cols].min()) / (
                 df[scaling_cols].max() - df[scaling_cols].min()
             )
         elif scaling_method == "standardize":
+            df[scaling_cols] = df[scaling_cols].astype(float)
             df[scaling_cols] = (df[scaling_cols] - df[scaling_cols].mean()) / df[
                 scaling_cols
             ].std()
         selectedfile = data.split("/")
-        columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
+        columns = [
+            {"name": i, "id": j, "editable": True, "renamable": True}
+            for i, j in zip(df, df.columns)
+        ]
         col_options = [{"label": i, "value": i} for i in df.columns]
+        data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
+        aaa = df.to_dict("records")
         return (
             selectedfile[-1],
-            df.to_dict("records"),
+            data,
             columns,
             col_options,
             col_options,
             col_options,
         )
     else:
+        df = cudf.DataFrame(aaa)
+        display_data = df.iloc[
+            page_current * page_size : (page_current + 1) * page_size  # NOQA
+        ].to_dict("records")
         return (
             dash.no_update,
-            dash.no_update,
+            display_data,
             dash.no_update,
             dash.no_update,
             dash.no_update,
@@ -364,14 +392,13 @@ def update_table(
     Output("store-data", "children"),
     [Input("save-button", "n_clicks")],
     [
-        State("page3-table", "data"),
         State("rename_file", "value"),
         State("uploaded-files-dropdown", "value"),
     ],
 )
-def save_table(n_clicks, table_data, file_rename_value, file_current_name):
+def save_table(n_clicks, file_rename_value, file_current_name):
     if n_clicks > 0:
-        df = cudf.DataFrame(table_data, dtype=object)
+        df = cudf.DataFrame(aaa, dtype=object)
         if file_rename_value:
             filename = f"{file_rename_value}.csv"
         else:
