@@ -1,5 +1,7 @@
+import statistics
 from typing import List
 
+import cudf
 import dash_bootstrap_components as dbc
 import numpy as np
 import pandas as pd
@@ -240,7 +242,7 @@ def update_page2_cat_picker_options(data):
     if data is None:
         return []
 
-    df = pd.read_csv(data)
+    df = cudf.read_csv(data)
     options_cat = [{"label": col, "value": col} for col in df.columns]
 
     return options_cat
@@ -255,7 +257,7 @@ def update_page2_cont_picker_options(data):
     if data is None:
         return []
 
-    df = pd.read_csv(data)
+    df = cudf.read_csv(data)
 
     options_cont = [{"label": x, "value": x} for x in df.columns]
 
@@ -273,12 +275,17 @@ def update_page2_cont_picker_options(data):
     State("page2-my-cont-picker", "value"),
 )
 def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
-    df = pd.read_csv(data)
+    df = cudf.read_csv(data)
     selected_file = data.split("/")
     selected_file_name = f"選択中ファイル：{selected_file[-1]}"
-    if pd.api.types.is_numeric_dtype(df[cont_pick]):
+
+    if df[cont_pick].dtype.kind in "biufc":
         # 数値型の場合
-        stats_df = df.groupby(cat_pick)[cont_pick].describe().reset_index()
+        stats_df = (
+            df.groupby(cat_pick)[cont_pick]
+            .agg(["count", "mean", "std", "median"])
+            .reset_index()
+        )
         stats_df_info = stats_df.loc[
             :,
             [
@@ -286,7 +293,7 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
                 "count",
                 "mean",
                 "std",
-                "50%",
+                "median",
             ],
         ]
         stats_df_info.columns = [
@@ -298,24 +305,33 @@ def update_page2_stats_table(n_clicks, data, cat_pick, cont_pick):
         ]
     else:
         # 数値型でない場合
-        stats_df_info = (
+        # 空白を削除してから .agg(["count"]) を実行
+        count_df = (
             df.groupby(cat_pick)[cont_pick]
-            .agg(
-                [
-                    "count",
-                    lambda x: x.mode().iloc[0],
-                    lambda x: (x.mode().count() / x.count()) * 100,
-                ]
-            )
+            .apply(lambda x: x.dropna().count())
             .reset_index()
         )
 
+        mode_df = (
+            df.groupby(cat_pick)[cont_pick]
+            .apply(lambda x: x.mode(dropna=False))
+            .reset_index()
+        )
+        mode_df = mode_df.drop(columns=["index"])
+        count_df.columns = [
+            f"{col}_count" if col != cat_pick else col for col in count_df.columns
+        ]
+        mode_df.columns = [
+            f"{col}_mode" if col != cat_pick else col for col in mode_df.columns
+        ]
+        stats_df_info = cudf.concat([count_df, mode_df], axis=1)
+
         stats_df_info.columns = [
             cat_pick,
-            "件数",
+            "データ件数",
             "最頻値",
-            "最頻値割合",
         ]
+
     table_columns = stats_df_info.columns
     table = dbc.Table.from_dataframe(
         stats_df_info,
@@ -345,11 +361,11 @@ def update_page2_defi_table(n_clicks, data):
     if data is None:
         return "", ""
 
-    df = pd.read_csv(data)
+    df = cudf.read_csv(data)
 
     # 欠損値の数
     defi_se = df.isnull().sum()
-    defi_df = pd.DataFrame(defi_se)
+    defi_df = cudf.DataFrame(defi_se)
     defi_df_T = defi_df.T
     defi_df_columns = defi_df_T.columns
     table_missing = dbc.Table.from_dataframe(
@@ -382,7 +398,7 @@ def update_page2_outlier_table(n_clicks, data):
     if data is None:
         return "", ""
 
-    df = pd.read_csv(data)
+    df = cudf.read_csv(data)
 
     # 外れ値の数 (IQR法を使用)
     numeric_columns = df.select_dtypes(include=np.number).columns
@@ -396,7 +412,7 @@ def update_page2_outlier_table(n_clicks, data):
     )
     # 外れ値カウント
     outliers_count_se = df[outliers].count()
-    outliers_count_df = pd.DataFrame(outliers_count_se).T
+    outliers_count_df = cudf.DataFrame(outliers_count_se).T
     outliers_count_df_columns = outliers_count_df.columns
     table_outliers_count = dbc.Table.from_dataframe(
         outliers_count_df,
@@ -442,7 +458,7 @@ def update_page2_outlier_table(n_clicks, data):
     Input("shared-selected-df", "data"),
 )
 def update_table(data):
-    df = pd.read_csv(data, low_memory=False)
+    df = cudf.read_csv(data)
     selectedfile = data.split("/")
     columns = [{"name": i, "id": j} for i, j in zip(df, df.columns)]
     data = df.to_dict("records")
