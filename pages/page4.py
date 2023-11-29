@@ -78,6 +78,26 @@ settings = html.Div(
                             className="setting_dropdown",
                             placeholder="モデルの選択",
                         ),
+                        html.P(
+                            "各変数選択",
+                            style={
+                                "margin-top": "8px",
+                                "margin-bottom": "4px",
+                            },
+                            className="font-weight-bold",
+                        ),
+                        dcc.Dropdown(
+                            id="objective-variable",
+                            multi=True,
+                            className="setting_dropdown",
+                            placeholder="目的変数",
+                        ),
+                        dcc.Dropdown(
+                            id="explanatory-variable",
+                            multi=True,
+                            className="setting_dropdown",
+                            placeholder="説明変数",
+                        ),
                         dbc.Button(
                             id="",
                             n_clicks=0,
