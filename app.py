@@ -45,7 +45,7 @@ sidebar = html.Div(
                         dbc.DropdownMenu(
                             children=[
                                 dbc.DropdownMenuItem("home", href="/"),
-                                dbc.DropdownMenuItem("sample Page", href="/page1"),
+                                dbc.DropdownMenuItem("sample", href="/page1"),
                                 dbc.DropdownMenuItem("データ分析", href="/page2"),
                                 dbc.DropdownMenuItem("データ加工・編集", href="/page3"),
                                 dbc.DropdownMenuItem("モデルの実行", href="/page4"),
