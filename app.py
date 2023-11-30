@@ -50,7 +50,7 @@ sidebar = html.Div(
                                 dbc.DropdownMenuItem("データ加工・編集", href="/page3"),
                                 dbc.DropdownMenuItem("モデルの実行", href="/page4"),
                             ],
-                            label="分析方法の変更",
+                            label="データ分析",
                             className="justify-content-start changePageDropDown",
                             color="secondary",
                         ),
