@@ -57,6 +57,6 @@
 			]
 		}
 	},
-	"workspaceMount": "source=/home/kawaguchi880/flask_app,target=/usr/src/,type=bind,consistency=cached",
+	"workspaceMount": "source=/home/kawa113n/flask_app,target=/usr/src/,type=bind,consistency=cached",
 	"postCreateCommand": "/bin/sh .devcontainer/postCreateCommand.sh"
 }
