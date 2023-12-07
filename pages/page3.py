@@ -108,7 +108,7 @@ settings = html.Div(
                             id="delete-col-button",
                             n_clicks=0,
                             children="列削除",
-                            className=" text-white setting_buttom",
+                            className=" text-white setting_button",
                             color="secondary",
                         ),
                         html.P(
@@ -140,7 +140,7 @@ settings = html.Div(
                             id="delete-missing-value-button",
                             n_clicks=0,
                             children="実行",
-                            className=" text-white setting_buttom",
+                            className=" text-white setting_button",
                             color="secondary",
                         ),
                         html.P(
@@ -170,7 +170,7 @@ settings = html.Div(
                             id="scale-button",
                             n_clicks=0,
                             children="実行",
-                            className=" text-white setting_buttom",
+                            className=" text-white setting_button",
                             color="secondary",
                         ),
                         html.Hr(),
@@ -178,13 +178,13 @@ settings = html.Div(
                             id="rename_file",
                             type="text",
                             placeholder="保存ファイルの名前",
-                            className="setting_buttom",
+                            className="setting_button",
                         ),
                         dbc.Button(
                             id="save-button",
                             n_clicks=0,
                             children="保存",
-                            className=" text-white setting_buttom",
+                            className=" text-white setting_button",
                             color="secondary",
                         ),
                     ],
@@ -261,14 +261,14 @@ def update_table(
         df = cudf.read_csv(data)
         selectedfile = data.split("/")
         columns = [
-            {"name": i, "id": j, "editable": True, "renamable": True}
-            for i, j in zip(df, df.columns)
+            {"name": i, "id": j, "renamable": True} for i, j in zip(df, df.columns)
         ]
         col_options = [{"label": i, "value": i} for i in df.columns]
         aaa = df
         display_data = df.iloc[
             page_current * page_size : (page_current + 1) * page_size  # NOQA
         ].to_dict("records")
+        print(df.head(5))
         return (
             selectedfile[-1],
             display_data,
@@ -357,7 +357,7 @@ def update_table(
             ].std()
         selectedfile = data.split("/")
         columns = [
-            {"name": i, "id": j, "editable": True, "renamable": True}
+            {"name": i, "id": j, "editable": True, "deletable": True, "renamable": True}
             for i, j in zip(df, df.columns)
         ]
         col_options = [{"label": i, "value": i} for i in df.columns]
