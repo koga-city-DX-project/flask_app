@@ -170,6 +170,7 @@ layout = html.Div(
     Output("home-title", "children", allow_duplicate=True),
     Output("home-graph1", "children", allow_duplicate=True),
     Output("home-graph2", "children", allow_duplicate=True),
+    Output("home-graph3", "children", allow_duplicate=True),
     Input("deaths", "n_clicks"),
     State("shared-selected-df", "data"),
     prevent_initial_call=True,
@@ -210,21 +211,16 @@ def deaths_graph(n, data):
         for city in city_death_counts.index.get_level_values("自治会コード名").unique():
             specific_city_death_counts = city_death_counts.xs(city, level=1)
             fig2.add_trace(
-                go.Scatter(
+                go.Bar(
                     x=specific_city_death_counts.index,
                     y=specific_city_death_counts.values,
-                    mode="lines",
                     name=str(city),
                 )
             )
-        fig2.update_layout(title="市町村別の死亡者数推移")
+        fig2.update_layout(barmode="stack", title="市町村別の死亡者数推移")
 
         title = "年ごとの死亡者数"
-        return (
-            title,
-            dcc.Graph(figure=fig1),
-            dcc.Graph(figure=fig2),
-        )
+        return (title, dcc.Graph(figure=fig1), dcc.Graph(figure=fig2), None)
     else:
         return html.Div("分析に適さないデータを選択しています")
 
@@ -247,12 +243,18 @@ def move_graph(n, data):
         df["転出年"] = pd.to_datetime(df["住民減異動日"], format="%Y", errors="coerce").dt.year
         df["転入年"] = pd.to_datetime(df["住民増異動日"], format="%Y", errors="coerce").dt.year
 
-        df_out = df[df["減事由コード"] == "B51"]
+        df_out = df[
+            (df["減事由コード"] == "B51")
+            | (df["減事由コード"] == "B12")
+            | (df["減事由コード"] == "B11")
+            | (df["減事由コード"] == "B13")
+        ]
         df_in = df[df["増事由コード"] == "A11"]
 
         in_counts = df_out.groupby("転入年").size()
         out_counts = df_out.groupby("転出年").size()
 
+        print(out_counts)
         gender_out_counts = df_out.groupby(["転出年", "性別名"]).size()
         gender_in_counts = df_in.groupby(["転入年", "性別名"]).size()
 
