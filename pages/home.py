@@ -695,7 +695,7 @@ def update_table(
             col_options,
             col_options,
         )
-    else:
+    elif trigger_id == "page3-table":
         df = cudf.DataFrame(aaa)
         display_data = df.iloc[
             page_current * page_size : (page_current + 1) * page_size  # NOQA
@@ -703,6 +703,15 @@ def update_table(
         return (
             dash.no_update,
             display_data,
+            dash.no_update,
+            dash.no_update,
+            dash.no_update,
+            dash.no_update,
+        )
+    else:
+        return (
+            dash.no_update,
+            dash.no_update,
             dash.no_update,
             dash.no_update,
             dash.no_update,
