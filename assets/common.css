@@ -1,13 +1,36 @@
 h4, p {
     font-size: 1.1vw;
 }
+
+hr {
+    margin: 3px 0;
+}
+
 .setting_dropdown {
     width: 98%;
 }
+
 .setting_button {
+    margin-top: 16px;
+    width: 98%;
+}
+
+.back_padding {
+    padding: 0;
+}
+
+.back_button {
+    padding-right: 0;
+    width: 98%;
+}
+
+.menu_btn {
+    height: 10%;
     margin-top: 16px;
     width: 95%;
 }
+
+
 
 .topMenu {
     height: 40px;
@@ -19,9 +42,6 @@ h4, p {
 
 .dash-loading-callback {
     -webkit-animation: fadein .5s ease-in 1s forwards; /* Safari and Chrome */
-
-/* 他のスタイル設定 */
-    /* アニメーションを1秒遅らせてから0.5秒かけてフェードインさせる */
        -moz-animation: fadein .5s ease-in 1s forwards; /* Firefox */
          -o-animation: fadein .5s ease-in 1s forwards; /* Opera */
             animation: fadein .5s ease-in 1s forwards;
@@ -40,7 +60,7 @@ h4, p {
     padding: 0;
 }
 /* Medium devices (tablets, 768px and up) */
-@media (max-width: 992px) {
+@media (max-width: 900px) {
     .changePageDropDown button {
         font-size: .7em;
         margin: 4px 0;
@@ -72,7 +92,7 @@ h4, p {
     }
 }
 
-@media (min-width: 992px) {
+@media (min-width: 900px) {
     h6 {
         font-size: 1em;
         margin: 1vw auto;
