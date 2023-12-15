@@ -1,5 +1,8 @@
+import plotly.express as ps
+import pandas as pd 
 import dash_bootstrap_components as dbc
-from dash import dcc, html
+from dash import Input, Output, State, callback, dcc, html
+
 
 contents = html.Div(
     [
@@ -23,7 +26,7 @@ contents = html.Div(
         ),
         dbc.Row(
             [
-                html.Div("a"),
+                dcc.Graph(id="primary_care_chart")
             ]
         ),
         dbc.Row(
@@ -70,7 +73,7 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         dcc.Dropdown(
-                            id="",
+                            id="duration_select",
                             options=[
                                 {"label": "年ごと", "value": "Y"},
                                 {"label": "月ごと", "value": "M"},
@@ -87,8 +90,8 @@ settings = html.Div(
                             },
                             className="font-weight-bold",
                         ),
-                        dcc.Dropdown(
-                            id="",
+                        dcc.Dropdown(##!!!
+                            id="gov_select",
                             options=[
                                 {"label": "指定なし", "value": "city0"},
                                 {"label": "○○市", "value": ""},
@@ -106,8 +109,8 @@ settings = html.Div(
                             },
                             className="font-weight-bold",
                         ),
-                        dcc.Dropdown(
-                            id="",
+                        dcc.Dropdown(##!!!
+                            id="care_level_select",
                             options=[
                                 {"label": "指定なし", "value": "k0"},
                                 {"label": "要介護5", "value": "k5"},
@@ -154,4 +157,11 @@ layout = html.Div(
             ]
         )
     ]
+)
+
+@callback(
+    Output("primary_care_chart","figure"),
+    Input("duration_select","value"),
+    Input("gov_select","value"),
+    Input("care_level_select","value"),
 )
