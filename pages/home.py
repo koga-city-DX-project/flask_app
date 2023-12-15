@@ -10,7 +10,7 @@ from dash.exceptions import PreventUpdate
 from sklearn.experimental import enable_iterative_imputer  # noqa: F401
 from sklearn.impute import IterativeImputer
 
-external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
+external_stylesheets = ["bootstrap.min.css", "/assets/css/all.min.css"]
 app = dash.Dash(
     __name__,
     suppress_callback_exceptions=True,
@@ -222,8 +222,8 @@ settings = html.Div(
                         html.P(
                             "列の削除",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
                             },
                             className="font-weight-bold",
                         ),
@@ -243,8 +243,8 @@ settings = html.Div(
                         html.P(
                             "欠損値",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
                             },
                             className="font-weight-bold",
                         ),
@@ -275,8 +275,8 @@ settings = html.Div(
                         html.P(
                             "スケーリング",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
                             },
                             className="font-weight-bold",
                         ),
@@ -306,8 +306,8 @@ settings = html.Div(
                         html.P(
                             "ファイルの統合",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
                             },
                             className="font-weight-bold",
                         ),
@@ -321,6 +321,37 @@ settings = html.Div(
                         ),
                         dbc.Button(
                             id="add-file-button",
+                            n_clicks=0,
+                            children="ファイル追加",
+                            className="setting_button",
+                            color="secondary",
+                        ),
+                        html.P(
+                            "pk・fkでの統合",
+                            style={
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
+                            },
+                            className="font-weight-bold",
+                        ),
+                        dbc.Select(
+                            id="pk-additional-files-dropdown",
+                            options=[
+                                {"label": i, "value": i}
+                                for i in uploaded_files_dict.keys()
+                            ],
+                            value=next(iter(uploaded_files_dict.keys()), None),
+                        ),
+                        dbc.Select(
+                            id="pkfk-column-dropdown",
+                            placeholder="紐づける列名",
+                        ),
+                        dbc.Select(
+                            id="additional-column-dropdown",
+                            placeholder="追加する列名",
+                        ),
+                        dbc.Button(
+                            id="pk-add-file-button",
                             n_clicks=0,
                             children="ファイル追加",
                             className="setting_button",
@@ -343,7 +374,7 @@ settings = html.Div(
                     className="setting d-grid",
                 ),
             ],
-            style={"height": "25vh", "margin-left": "1px"},
+            style={"height": "25vh", "marginLeft": "1px"},
         ),
     ]
 )
@@ -558,7 +589,6 @@ def update_table(
     if trigger_id == "shared-selected-df":
         df = cudf.read_csv(data)
         selectedfile = data.split("/")
-        print(df.info())
         columns = [
             {"name": i, "id": j, "renamable": True} for i, j in zip(df, df.columns)
         ]

@@ -12,13 +12,13 @@
   "editor.cursorSmoothCaretAnimation": "on", // カーソルの点滅をアニメーション表示する
   "editor.cursorStyle": "block", // カーソルの外観をブロックに変更
   "files.autoGuessEncoding": true, // ファイルの自動エンコードを実施
-  "window.zoomLevel": 0, // 画面全体の表示サイズはデフォルト
+  "window.zoomLevel": -1, // 画面全体の表示サイズはデフォルト
   "editor.bracketPairColorization.enabled": true, // 括弧の対応を色付ける
   "[python]": {
     "editor.defaultFormatter": "ms-python.black-formatter",
     "editor.formatOnSave": true,
     "editor.codeActionsOnSave": {
-      "source.organizeImports": true
+      "source.organizeImports": "explicit"
     }
   },
   "isort.args": ["--profile", "black"],
