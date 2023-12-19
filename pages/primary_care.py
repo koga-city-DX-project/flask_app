@@ -42,7 +42,7 @@ settings = html.Div(
                 href="/",
                 children="戻る",
                 className=" text-white back_button",
-                external_link=True,
+                external_link="true",
                 color="dark",
             ),
             className="bg-primary text-white font-italic topMenu",
@@ -54,9 +54,9 @@ settings = html.Div(
                         html.P(
                             "オプション",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "0",
-                                "font-size": "1.3em",
+                                "marginTop": "8px",
+                                "marginBottom": "0",
+                                "fontSize": "1.3em",
                             },
                             className="font-weight-bold",
                         ),
@@ -64,8 +64,8 @@ settings = html.Div(
                         html.P(
                             "表示期間",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
                             },
                             className="font-weight-bold",
                         ),
@@ -82,8 +82,8 @@ settings = html.Div(
                         html.P(
                             "自治コード別",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
                             },
                             className="font-weight-bold",
                         ),
@@ -101,8 +101,8 @@ settings = html.Div(
                         html.P(
                             "介護度別",
                             style={
-                                "margin-top": "8px",
-                                "margin-bottom": "4px",
+                                "marginTop": "8px",
+                                "marginBottom": "4px",
                             },
                             className="font-weight-bold",
                         ),
@@ -126,14 +126,14 @@ settings = html.Div(
                             href="#",
                             children="ファイルの出力",
                             className="text-white setting_button d-flex justify-content-center",
-                            external_link=True,
+                            external_link="true",
                             color="secondary",
                         ),
                     ],
                     className="setting d-grid",
                 ),
             ],
-            style={"height": "35vh", "margin-left": "1px"},
+            style={"height": "35vh", "marginLeft": "1px"},
         ),
     ]
 )

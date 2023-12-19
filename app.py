@@ -13,7 +13,7 @@ page_layouts = {
     "/primary_care": primary_care.layout,
     "/home": home.layout,
 }
-external_stylesheets = [dbc.themes.FLATLY, dbc.icons.FONT_AWESOME]
+external_stylesheets = ["bootstrap.min.css"]
 app = dash.Dash(
     __name__,
     suppress_callback_exceptions=True,
