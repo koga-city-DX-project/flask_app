@@ -42,11 +42,10 @@ hr {
     padding: 0 0 0 0;
 }
 
-.dash-loading-callback {
-    -webkit-animation: fadein .5s ease-in 1s forwards; /* Safari and Chrome */
-       -moz-animation: fadein .5s ease-in 1s forwards; /* Firefox */
-         -o-animation: fadein .5s ease-in 1s forwards; /* Opera */
-            animation: fadein .5s ease-in 1s forwards;
+
+.dash-loading {
+    background-color: #edf1f2;
+    display: none;
 }
 
 .sidebar {
