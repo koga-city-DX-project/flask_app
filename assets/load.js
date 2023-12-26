@@ -1,6 +1,6 @@
 const loader = document.getElementById('js-loader');
 window.addEventListener('load', () => {
-  const ms = 400;
+  const ms = 1000;
   loader.style.transition = 'opacity ' + ms + 'ms';
   
   const loaderOpacity = function(){
@@ -9,9 +9,7 @@ window.addEventListener('load', () => {
   const loaderDisplay = function(){
     loader.style.display = "none";
   }
-  // setTimeout(loaderOpacity, 1);
-  // setTimeout(loaderDisplay, ms);
-  // デモ用
-  setTimeout(loaderOpacity, 1000);
-  setTimeout(loaderDisplay, 500 + ms);
+  setTimeout(loaderOpacity, 1);
+  setTimeout(loaderDisplay, ms);
+
 });

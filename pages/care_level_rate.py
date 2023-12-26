@@ -3,6 +3,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash import Input, Output, callback, dcc, html
 
+df_path = "/usr/src/data/save/介護認定管理.csv"
 contents = html.Div(
     [
         dbc.Row(
@@ -135,7 +136,7 @@ def process_data(file_path):
     return df
 
 
-df = process_data("/usr/src/data/save/介護認定管理.csv")
+df = process_data(df_path)
 color_map = {
     "要支援１": "blue",
     "要支援２": "lightblue",
