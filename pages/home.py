@@ -1090,11 +1090,20 @@ def update_dropdowns_on_file_change(
     ],
 )
 def update_main_table_and_button_state(selected_file, selected_year, n_clicks):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     # ボタンの有効/無効状態を更新
     button_disabled = selected_file is None or selected_year is None
 
     # ボタンがクリックされたときの処理
-    if n_clicks > 0 and not button_disabled:
+    if (
+        trigger_id == "primary-care-add-file-button"
+        and n_clicks > 0
+        and not button_disabled
+    ):
         # additional_table を読み込む
         additional_table = cudf.read_csv(uploaded_files_dict[selected_file])
         # main_table を取得
@@ -1239,7 +1248,10 @@ def merge_additional_care_columns(
     additional_table,
     selected_year,
 ):
-    print("a")
+    global a
+    global b
+    global c
+    global d
     # selected_year年の3月31日時点の65歳以上の条件を文字列として設定
     cutoff_date_str = f"{selected_year}0331"
     cutoff_date_int = int(cutoff_date_str)
@@ -1248,17 +1260,16 @@ def merge_additional_care_columns(
     print(f"selected_year: {selected_year}")
     print(f"cutoff_date_str: {cutoff_date_str}")
     print(f"birthdate_limit: {birthdate_limit}")
-
     main_table["生年月日_year"] = main_table["生年月日_conv"].str.slice(stop=4).astype(int)
     main_table["生年月日_year"] = main_table["生年月日_year"].apply(lambda x: 0 if x < 0 else x)
     # 65歳以上である住民のみを抽出(main_table)
-    main_table = main_table[
-        (main_table["生年月日_year"] <= birthdate_limit) | (main_table["生年月日_year"] == 0)
-    ]
-    # main_table = main_table[main_table["住民コード_conv"].isin([51213045])]
+    # main_table = main_table[
+    #     (main_table["生年月日_year"] <= birthdate_limit) | (main_table["生年月日_year"] == 0)
+    # ]
+    # main_table = main_table[main_table["住民コード_conv"].isin([83608264])]
     # filepath = "/usr/src/data/save/ex5.csv"
     # main_table.to_csv(filepath, index=False)
-    print(f"main_table(年齢): \n{main_table}")
+    print(f"main_table: \n{main_table}")
     # time.sleep(15)
     unique_resident_codes = main_table["住民コード_conv"].unique()
     number_of_groups = len(unique_resident_codes)
@@ -1272,6 +1283,10 @@ def merge_additional_care_columns(
         .reset_index(drop=True)
     )
     print(f"main_table(最終): \n{main_table}")
+    a = 0
+    b = 0
+    c = 0
+    d = 0
     # filepath = "/usr/src/data/save/ex4.csv"
     # main_table.to_csv(filepath, index=False)
     # time.sleep(100)
@@ -1341,15 +1356,9 @@ def merge_additional_care_columns(
         "二次判定日",
         "一次判定変更理由",
         "一次判定変更理由名",
-        "二次判定要介護度",
-        "二次判定要介護度名",
         "認定有効月数",
-        "要介護認定日",
         "要介護認定理由ＣＤ",
         "要介護認定理由ＣＤ名",
-        "認定開始日",
-        "認定終了日",
-        "要介護認定申請日",
         "認定状態区分",
         "認定状態区分名",
         "申請区分",
@@ -1419,45 +1428,31 @@ def filter_resident_record(group, cutoff_date_int, cutoff_date_str, number_of_gr
     if a == 0:
         print(f"指定した日付：{cutoff_date_int}")
     if a % 1000 == 0:
-        print(f"処理中：{a}/{number_of_groups}  すでに死亡している：{c} 転出とかしてた：{d}\n")
+        print(f"処理中：{a}/{number_of_groups}\n")
     a += 1
-    # if group[(group["自治会コード"] >= 4200) & (group["自治会コード"] <= 4299)].empty:
-    #     # print("自治会コードが4200～4299の範囲内のレコードが存在しないため、処理をスキップします。\n")
-    #     b += 1
-    #     return cudf.DataFrame()
-    # print(f"増異動日:\n{group}")
     if not group[
         (group["最新異動事由コード名"] == "死亡")
         & (group["死亡日"] < cutoff_date_str)
         & (group["死亡日"] != "0")
     ].empty:
-        # print("指定日時以前に死亡日が存在するため、処理をスキップします。\n")
-        c += 1
         return cudf.DataFrame()
-    # print(f"減異動前レコード：\n{group}")
     removed_seqs = group.loc[
         (group["減異動日"] <= cutoff_date_int) & (group["減異動日"] != 0), "異動ＳＥＱ"
     ]
-    # print(f"removed_seqs\n{removed_seqs}")
+
     if not removed_seqs.empty:
         max_removed_seq = removed_seqs.max()
         group = group[group["異動ＳＥＱ"].values > max_removed_seq]
-    # print(f"group\n{group}")
+        if group.empty:
+            return cudf.DataFrame()
+
     group = group[group["最新異動日"] <= cutoff_date_int]
     exclude_reasons = ["転入通知", "職権消除（通知未着）", "職権消除", "転出", "国外への転出", ""]
     group = group[~group["最新異動事由コード名"].isin(exclude_reasons)]
-    # print(f"\n最新異動日:\n{group}")
-    latest_date_records = group[group["最新異動日"] == group["最新異動日"].max()]
-    if not latest_date_records.empty:
-        latest_record = latest_date_records[
-            latest_date_records["異動ＳＥＱ"] == latest_date_records["異動ＳＥＱ"].max()
-        ]
-    else:
-        d += 1
-        latest_record = cudf.DataFrame()
 
-    # print("\n最終レコード:\n", latest_record)
-    # time.sleep(10)
-    if len(latest_record) > 1:
-        latest_record = latest_record.tail(1)
+    if not group.empty:
+        latest_record = group[group["異動ＳＥＱ"] == group["異動ＳＥＱ"].max()]
+    else:
+        return cudf.DataFrame()
+
     return latest_record

@@ -27,8 +27,8 @@ contents = html.Div(
                 )
             ],
         ),
-        dbc.Row(dbc.Col(html.Div(""), style={"height": "20vh"})),
     ],
+    style={"height": "100vh"},
 )
 
 settings = html.Div(

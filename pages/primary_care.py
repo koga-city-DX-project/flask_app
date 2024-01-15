@@ -30,7 +30,6 @@ contents = html.Div(
             [
                 html.Div("a"),
             ],
-            style={"height": "100vh"},
         ),
     ],
 )
