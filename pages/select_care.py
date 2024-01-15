@@ -1,7 +1,4 @@
-import dash
 import dash_bootstrap_components as dbc
-import pandas as pd
-import plotly.graph_objects as go
 from dash import html
 
 contents = html.Div(
@@ -48,8 +45,8 @@ contents = html.Div(
                 ),
                 dbc.Col(
                     dbc.Button(
-                        "○○ページ",
-                        href="#",
+                        "認定度(要介護度)ごとの率の推移",
+                        href="care_level_rate",
                         className="menu_btn d-flex align-items-center justify-content-center",
                         external_link="true",
                         color="dark",
@@ -131,21 +128,18 @@ settings = html.Div(
                             href="/",
                             children="介護",
                             className=" text-white setting_button",
-                            external_link="true",
                             color="secondary",
                             disabled=True,
                         ),
                         dbc.Button(
-                            href="/tax",
-                            children="税務",
+                            href="/select_populations",
+                            children="人口",
                             className=" text-white setting_button",
-                            external_link="true",
                             color="secondary",
                         ),
                         dbc.Button(
-                            id="",
-                            n_clicks=0,
-                            children="農地",
+                            href="/select_tax",
+                            children="税務",
                             className=" text-white setting_button",
                             color="secondary",
                         ),
@@ -185,12 +179,12 @@ layout = html.Div(
             [
                 dbc.Col(
                     settings,
-                    className="bg-primary bg-opacity-25 bg-gradient",
+                    className="bg-primary bg-opacity-25",
                     width=2,
                 ),
                 dbc.Col(
                     contents,
-                    className="bg-light bg-gradient",
+                    className="bg-light",
                     width=10,
                 ),
             ]

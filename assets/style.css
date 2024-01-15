@@ -1,0 +1,35 @@
+body {
+    overflow-x: hidden;
+}
+
+.loader {
+    align-items: center;
+    background: #eef1f2;
+    bottom: 0;
+    display: flex;
+    justify-content: center;
+    left: 0;
+    position: fixed;
+    right: 0;
+    top: 0;
+    z-index: 999;
+}
+.loader::after {
+    animation: loader 0.5s linear infinite;
+    border: 2px solid #119dff;
+    border-radius: 50%;
+    border-right: 1px solid rgba(255, 165, 0, 0.2);
+    border-top: 1px solid rgba(255, 165, 0, 0.2);
+    content: "";
+    height: 70px;
+    width: 70px;
+}
+  
+@keyframes loader {
+    0% {
+      transform: rotate(0);
+    }
+    100% {
+      transform: rotate(360deg);
+    }
+}
