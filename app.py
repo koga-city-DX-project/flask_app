@@ -5,14 +5,24 @@ import dash_uploader as du
 from dash import dcc, html
 from dash.dependencies import Input, Output
 
-from pages import care_level_rate, home, primary_care, select_care, tax
+from pages import (
+    aging_rate,
+    care_level_rate,
+    home,
+    primary_care,
+    select_care,
+    select_populations,
+    select_tax,
+)
 
 page_layouts = {
     "/": select_care.layout,
-    "/tax": tax.layout,
+    "/select_tax": select_tax.layout,
     "/primary_care": primary_care.layout,
     "/home": home.layout,
     "/care_level_rate": care_level_rate.layout,
+    "/select_populations": select_populations.layout,
+    "/aging_rate": aging_rate.layout,
 }
 external_stylesheets = ["bootstrap.min.css"]
 app = dash.Dash(
@@ -58,7 +68,9 @@ app.layout = dbc.Container(
             [
                 dcc.Location(id="url", refresh=False),
                 dcc.Store(id="shared-selected-df", storage_type="session"),
-                dbc.Col(content, id="content", style={"padding": "0"}),
+                dbc.Col(
+                    content, id="content", style={"padding": "0", "height": "100vh"}
+                ),
             ],
             justify="center",
             align="center",
