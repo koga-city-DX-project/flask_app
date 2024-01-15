@@ -46,7 +46,7 @@ contents = html.Div(
                 dbc.Col(
                     dbc.Button(
                         "人口分布の推移(古賀市・福岡県・国)",
-                        href="care_level_rate",
+                        href="/population_distribution",
                         className="menu_btn d-flex align-items-center justify-content-center",
                         external_link="true",
                         color="dark",

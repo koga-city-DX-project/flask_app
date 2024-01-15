@@ -9,6 +9,7 @@ from pages import (
     aging_rate,
     care_level_rate,
     home,
+    population_distribution,
     primary_care,
     select_care,
     select_populations,
@@ -23,6 +24,7 @@ page_layouts = {
     "/care_level_rate": care_level_rate.layout,
     "/select_populations": select_populations.layout,
     "/aging_rate": aging_rate.layout,
+    "/population_distribution": population_distribution.layout,
 }
 external_stylesheets = ["bootstrap.min.css"]
 app = dash.Dash(
