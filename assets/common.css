@@ -19,7 +19,10 @@ hr {
     padding: 0;
 }
 
-
+.option_P{
+    margin-top: 8px;
+    margin-bottom: 4px;
+}
 
 .back_button {
     padding-right: 0;
