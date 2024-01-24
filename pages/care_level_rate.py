@@ -1,9 +1,46 @@
+import os
+import re
+
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objs as go
 from dash import Input, Output, callback, dcc, html
 
-df_path = "/usr/src/data/save/介護認定管理.csv"
+data_directory = "/usr/src/data/save/"
+file_pattern = re.compile(r"認定状態・総人口20(\d{2}).csv")
+
+column_types = {
+    "異動ＳＥＱ": int,
+    "増異動日": int,
+    "増事由コード名": str,
+    "減異動日": int,
+    "減事由コード名": "Int8",
+    "最新異動日": int,
+    "最新異動事由コード名": str,
+    "性別": int,
+    "性別名": str,
+    "死亡日": str,
+    "続柄": str,
+    "続柄名": str,
+    "住民となった異動日": int,
+    "自治会コード": int,
+    "自治会コード名": str,
+    "小学校区コード": int,
+    "小学校区コード名": str,
+    "住民コード_conv": int,
+    "世帯コード_conv": int,
+    "生年月日_conv": str,
+    "住所_conv": str,
+    "生年月日_year": int,
+    "要介護認定申請日": str,
+    "二次判定要介護度": "Int64",
+    "二次判定要介護度名": str,
+    "要介護認定日": str,
+    "認定開始日": str,
+    "認定終了日": str,
+    "認定状態": str,
+}
+
 contents = html.Div(
     [
         dbc.Row(
@@ -11,7 +48,7 @@ contents = html.Div(
                 dbc.Col(
                     [
                         html.Div(
-                            [html.H6("介護度データ出力・分析")],
+                            [html.H6("認定度(要介護度)ごとの率の推移")],
                             className="align-items-center",
                         )
                     ],
@@ -68,7 +105,6 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="care-level-rate-dropdown",
                             options=[
-                                {"label": "すべて", "value": "k0"},
                                 {"label": "要介護5", "value": "要介護５"},
                                 {"label": "要介護4", "value": "要介護４"},
                                 {"label": "要介護3", "value": "要介護３"},
@@ -77,13 +113,14 @@ settings = html.Div(
                                 {"label": "要支援2", "value": "要支援２"},
                                 {"label": "要支援1", "value": "要支援１"},
                             ],
-                            value="k0",
+                            value=[],
                             className="setting_dropdown",
-                            placeholder="介護度別にみる",
+                            placeholder="すべての介護度を表示",
+                            multi=True,
                         ),
                         html.P("グラフの種類", className="font-weight-bold"),
                         dcc.Dropdown(
-                            id="graph-type-dropdown",
+                            id="care-level-graph-type-dropdown",
                             options=[
                                 {"label": "折れ線グラフ", "value": "line"},
                                 {"label": "縦積み棒グラフ", "value": "stacked_bar"},
@@ -98,7 +135,7 @@ settings = html.Div(
                             external_link="true",
                             color="secondary",
                         ),
-                        dcc.Download(id="download-dataframe-csv"),
+                        dcc.Download(id="download-care-level-rate"),
                     ],
                     className="setting d-grid",
                 ),
@@ -127,24 +164,53 @@ layout = html.Div(
 )
 
 
-def process_data(file_path):
-    df = pd.read_csv(file_path, usecols=["認定状態区分", "要介護認定日", "二次判定要介護度名", "二次判定要介護度"])
-    df = df[df["認定状態区分"].isin([3, 5])]
-    df = df[df["要介護認定日"] != "0"]
-    df["要介護認定日"] = pd.to_datetime(df["要介護認定日"], format="%Y%m%d", errors="coerce")
-    df["Year"] = df["要介護認定日"].dt.year
-    return df
+def process_data(data_directory, file_pattern):
+    aging_data = pd.DataFrame()
+    for file_name in os.listdir(data_directory):
+        match = file_pattern.match(file_name)
+        if match:
+            year = int("20" + match.group(1))
+            file_path = os.path.join(data_directory, file_name)
+            df = pd.read_csv(file_path, encoding="utf-8", dtype=column_types)
+            df = df[df["認定状態"] == "認定済み"]
+            df["年齢"] = year - df["生年月日_year"] + 1
+            elderly_data = df[df["年齢"] >= 65]
+            elderly_data = elderly_data[
+                [
+                    "要介護認定申請日",
+                    "二次判定要介護度名",
+                    "住民コード_conv",
+                    "認定開始日",
+                    "認定終了日",
+                ]
+            ]
+            elderly_data["Year"] = year
+            counts_by_care_level = (
+                elderly_data.groupby("二次判定要介護度名").size().reset_index(name="合計")
+            )
+            counts_by_care_level["Year"] = year
+            total_by_year = counts_by_care_level["合計"].sum()
+            counts_by_care_level["割合"] = (
+                counts_by_care_level["合計"] / total_by_year * 100
+            )
+
+            aging_data = pd.concat(
+                [aging_data, counts_by_care_level], ignore_index=True
+            )
+    aging_data = aging_data.sort_values(by="Year")
+
+    filepath = "/usr/src/data/save/認定者数0124.csv"
+    aging_data.to_csv(filepath, index=False)
 
 
-df = process_data(df_path)
 color_map = {
     "要支援１": "blue",
-    "要支援２": "lightblue",
+    "要支援２": "#92cff0",
     "要介護１": "green",
-    "要介護２": "lightgreen",
-    "要介護３": "yellow",
-    "要介護４": "orange",
-    "要介護５": "red",
+    "要介護２": "#0fd614",
+    "要介護３": "#ffbb00",
+    "要介護４": "#ff6600",
+    "要介護５": "#ff0000",
     "非該当": "gray",
     "再調査": "gray",
     "経過的要介護": "gray",
@@ -153,88 +219,95 @@ color_map = {
 
 @callback(
     Output("care-level-graph", "figure"),
-    [Input("care-level-rate-dropdown", "value"), Input("graph-type-dropdown", "value")],
+    [
+        Input("care-level-rate-dropdown", "value"),
+        Input("care-level-graph-type-dropdown", "value"),
+    ],
 )
-def update_graph(selected_care_level, selected_graph_type):
+def update_graph(selected_care_levels, selected_graph_type):
+    # process_data(data_directory, file_pattern)
+    filepath = "/usr/src/data/save/認定者数0124.csv"
+    df = pd.read_csv(filepath, encoding="utf-8")
+
+    # 選択された介護度に基づいてデータをフィルタリング
+    if len(selected_care_levels) != 0:
+        df = df[df["二次判定要介護度名"].isin(selected_care_levels)]
+
+    # グラフの初期化
+    fig = go.Figure()
+
+    # グラフタイプに基づいてグラフを描画
     if selected_graph_type == "line":
-        certified_df = df[
-            (df["認定状態区分"] == 3) & (~df["二次判定要介護度名"].isin(["非該当", "再調査", "経過的要介護"]))
-        ]
-        grouped_df = (
-            certified_df.groupby(["Year", "二次判定要介護度名"]).size().reset_index(name="Count")
+        care_levels = (
+            df["二次判定要介護度名"].unique()
+            if not selected_care_levels
+            else selected_care_levels
         )
-        total_counts = (
-            certified_df.groupby("Year").size().reset_index(name="TotalCount")
-        )
-        grouped_df = grouped_df.merge(total_counts, on="Year")
-        grouped_df["Percentage"] = grouped_df["Count"] / grouped_df["TotalCount"] * 100
-        fig = go.Figure()
-        if selected_care_level != "k0":
-            if selected_care_level in grouped_df["二次判定要介護度名"].unique():
-                level_df = grouped_df[grouped_df["二次判定要介護度名"] == selected_care_level]
-                fig.add_trace(
-                    go.Scatter(
-                        x=level_df["Year"],
-                        y=level_df["Percentage"],
-                        mode="lines",
-                        name=selected_care_level,
-                        line=dict(color=color_map[selected_care_level]),
-                    )
+        for care_level in care_levels:
+            level_df = df[df["二次判定要介護度名"] == care_level]
+            fig.add_trace(
+                go.Scatter(
+                    x=level_df["Year"],
+                    y=level_df["割合"],
+                    mode="lines",
+                    name=care_level,
+                    line=dict(
+                        color=color_map.get(care_level, "black")
+                    ),  # カラーマップから色を設定、デフォルトは黒
                 )
-        else:
-            for care_level, color in color_map.items():
-                level_df = grouped_df[grouped_df["二次判定要介護度名"] == care_level]
+            )
+            if len(care_levels) == 1:
                 fig.add_trace(
-                    go.Scatter(
+                    go.Bar(
                         x=level_df["Year"],
-                        y=level_df["Percentage"],
-                        mode="lines",
-                        name=care_level,
-                        line=dict(color=color),
+                        y=level_df["合計"],
+                        yaxis="y2",
+                        name=f"{care_level}総人数",
+                        marker=dict(
+                            color=color_map.get(care_level, "black"),
+                            opacity=0.4,
+                        ),
                     )
                 )
     elif selected_graph_type == "stacked_bar":
-        certified_df = df[(df["認定状態区分"] == 3)]
-        grouped_df = (
-            certified_df.groupby(["Year", "二次判定要介護度名"]).size().reset_index(name="Count")
-        )
-        total_counts = (
-            certified_df.groupby("Year").size().reset_index(name="TotalCount")
-        )
-        grouped_df = grouped_df.merge(total_counts, on="Year")
-        grouped_df["Percentage"] = grouped_df["Count"] / grouped_df["TotalCount"] * 100
-        fig = go.Figure()
-        if selected_care_level != "k0":
-            if selected_care_level in grouped_df["二次判定要介護度名"].unique():
-                level_df = grouped_df[grouped_df["二次判定要介護度名"] == selected_care_level]
-                fig.add_trace(
-                    go.Bar(
-                        x=level_df["Year"],
-                        y=level_df["Percentage"],
-                        name=selected_care_level,
-                        marker=dict(color=color_map[selected_care_level]),
-                    )
+        # 積み上げ棒グラフのデータを準備
+        data = []
+        for care_level in df["二次判定要介護度名"].unique():
+            level_df = df[df["二次判定要介護度名"] == care_level]
+            data.append(
+                go.Bar(
+                    x=level_df["Year"],
+                    y=level_df["割合"],
+                    name=care_level,
+                    marker=dict(
+                        color=color_map.get(care_level, "black")
+                    ),  # カラーマップから色を設定、デフォルトは黒
                 )
-        else:
-            for care_level, color in color_map.items():
-                level_df = grouped_df[grouped_df["二次判定要介護度名"] == care_level]
-                fig.add_trace(
-                    go.Bar(
-                        x=level_df["Year"],
-                        y=level_df["Percentage"],
-                        name=care_level,
-                        marker=dict(color=color),
-                    )
-                )
+            )
+        fig = go.Figure(data=data)
         fig.update_layout(barmode="stack")
 
-    fig.update_layout(title="選択された要介護度の年次推移", xaxis_title="年度", yaxis_title="割合 (%)")
+    # グラフのレイアウト設定
+    fig.update_layout(
+        title="選択された要介護度の年次推移",
+        xaxis_title="年度",
+        yaxis_title="割合",
+        yaxis2=dict(
+            title="人数",
+            title_font=dict(size=20),
+            overlaying="y",
+            side="right",
+            tickformat=",",
+        ),
+        legend_title="介護度名",
+        xaxis={"type": "category"},  # X軸をカテゴリ型に設定
+    )
 
     return fig
 
 
 @callback(
-    Output("download-dataframe-csv", "data"),
+    Output("download-care-level-rate", "data"),
     [Input("care-lebel-download-button", "n_clicks")],
     prevent_initial_call=True,
 )
