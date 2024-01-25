@@ -208,6 +208,23 @@ contents = html.Div(
                         dcc.Graph(
                             id="aging-rate-graph",
                             style={"height": "80vh"},
+                            config={
+                                "displayModeBar": True,
+                                "displaylogo": False,
+                                "modeBarButtonsToAdd": [
+                                    "pan2d",
+                                    "autoScale2d",
+                                ],
+                                "modeBarButtonsToRemove": [
+                                    "zoomIn2d",
+                                    "zoomOut2d",
+                                    "select2d",
+                                    "lasso2d",
+                                    "toggleSpikelines",
+                                    "hoverClosestCartesian",
+                                    "hoverCompareCartesian",
+                                ],
+                            },
                         ),
                         html.Pre(id="relayout-data"),
                         html.Div(
@@ -574,6 +591,8 @@ def download_file(n_clicks, distinction, areas, file_name, zoom_range):
     ],
 )
 def update_zoom_range_store(relayoutData, distinction, areas):
+    if not relayoutData:
+        return no_update
     ctx = dash.callback_context
 
     if not ctx.triggered:
