@@ -1,10 +1,41 @@
 import glob
-from datetime import datetime
 
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objects as go
-from dash import Dash, Input, Output, callback, dcc, html
+from dash import Input, Output, callback, dcc, html
+
+column_types = {
+    "異動ＳＥＱ": int,
+    "増異動日": int,
+    "増事由コード名": str,
+    "減異動日": int,
+    "減事由コード名": "Int8",
+    "最新異動日": int,
+    "最新異動事由コード名": str,
+    "性別": int,
+    "性別名": str,
+    "死亡日": str,
+    "続柄": str,
+    "続柄名": str,
+    "住民となった異動日": int,
+    "自治会コード": int,
+    "自治会コード名": str,
+    "小学校区コード": int,
+    "小学校区コード名": str,
+    "住民コード_conv": int,
+    "世帯コード_conv": int,
+    "生年月日_conv": str,
+    "住所_conv": str,
+    "生年月日_year": int,
+    "要介護認定申請日": str,
+    "二次判定要介護度": "Int64",
+    "二次判定要介護度名": str,
+    "要介護認定日": str,
+    "認定開始日": str,
+    "認定終了日": str,
+    "認定状態": str,
+}
 
 contents = html.Div(
     [
@@ -134,7 +165,7 @@ def load_and_process_files():
     all_data = []
     for file in files:
         year = file[-8:-4]  # ファイル名から年を抽出
-        df = pd.read_csv(file)
+        df = pd.read_csv(file, dtype=column_types)
         df = df.drop_duplicates(subset=["住民コード_conv"])
         columns_to_keep = [
             "住民コード_conv",
