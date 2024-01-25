@@ -141,11 +141,7 @@ sidebar = html.Div(
                 html.Br(),
                 html.P(
                     "ファイルを選択",
-                    style={
-                        "marginTop": "8px",
-                        "marginBottom": "4px",
-                    },
-                    className="font-weight-bold",
+                    className="font-weight-bold option_P",
                 ),
                 dbc.Select(
                     id="uploaded-files-dropdown",
@@ -247,11 +243,7 @@ settings = html.Div(
                         html.Div(id="store-data", style={"display": "none"}),
                         html.P(
                             "列の削除",
-                            style={
-                                "marginTop": "8px",
-                                "marginBottom": "4px",
-                            },
-                            className="font-weight-bold",
+                            className="font-weight-bold option_P",
                         ),
                         dcc.Dropdown(
                             id="delete-col-dropdown",
@@ -268,11 +260,7 @@ settings = html.Div(
                         ),
                         html.P(
                             "レコードの追加",
-                            style={
-                                "marginTop": "8px",
-                                "marginBottom": "4px",
-                            },
-                            className="font-weight-bold",
+                            className="font-weight-bold option_P",
                         ),
                         dcc.Dropdown(
                             id="additional-files-dropdown",
@@ -292,11 +280,7 @@ settings = html.Div(
                         ),
                         html.P(
                             "pk・fkでの統合",
-                            style={
-                                "marginTop": "8px",
-                                "marginBottom": "4px",
-                            },
-                            className="font-weight-bold",
+                            className="font-weight-bold option_P",
                         ),
                         dcc.Dropdown(
                             id="pk-additional-files-dropdown",
@@ -337,11 +321,7 @@ settings = html.Div(
                         html.Hr(),
                         html.P(
                             "要介護認定度ファイル",
-                            style={
-                                "marginTop": "8px",
-                                "marginBottom": "4px",
-                            },
-                            className="font-weight-bold",
+                            className="font-weight-bold option_P",
                         ),
                         dcc.Dropdown(
                             id="primary-care-additional-files-dropdown",
@@ -384,11 +364,7 @@ settings = html.Div(
                         html.Hr(),
                         html.P(
                             "欠損値",
-                            style={
-                                "marginTop": "8px",
-                                "marginBottom": "4px",
-                            },
-                            className="font-weight-bold",
+                            className="font-weight-bold option_P",
                         ),
                         dcc.Dropdown(
                             id="missing-value-col-dropdown",
@@ -416,11 +392,7 @@ settings = html.Div(
                         ),
                         html.P(
                             "スケーリング",
-                            style={
-                                "marginTop": "8px",
-                                "marginBottom": "4px",
-                            },
-                            className="font-weight-bold",
+                            className="font-weight-bold option_P",
                         ),
                         dcc.Dropdown(
                             id="scaling-col-dropdown",
@@ -966,7 +938,6 @@ def update_dropdowns_on_file_change(
         trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if get_current_table() is None:
-        print("テーブルは空です")
         return (
             [],
             "紐づける列名を選択",
@@ -1266,7 +1237,7 @@ def merge_additional_care_columns(
     # main_table = main_table[
     #     (main_table["生年月日_year"] <= birthdate_limit) | (main_table["生年月日_year"] == 0)
     # ]
-    # main_table = main_table[main_table["住民コード_conv"].isin([83608264])]
+    # main_table = main_table[main_table["住民コード_conv"].isin([82657904])]
     # filepath = "/usr/src/data/save/ex5.csv"
     # main_table.to_csv(filepath, index=False)
     print(f"main_table: \n{main_table}")
@@ -1289,7 +1260,6 @@ def merge_additional_care_columns(
     d = 0
     # filepath = "/usr/src/data/save/ex4.csv"
     # main_table.to_csv(filepath, index=False)
-    # time.sleep(100)
     additional_table = additional_table[additional_table["要介護認定日"] != 0]
     additional_table = additional_table[additional_table["要介護認定申請日"] != 0]
 
@@ -1309,6 +1279,8 @@ def merge_additional_care_columns(
     print(f"additional_table_pd: \n{additional_table_pd}")
     additional_table = cudf.from_pandas(additional_table_pd)
 
+    filepath = "/usr/src/data/save/介護認定管理だぞ.csv"
+    additional_table.to_csv(filepath, index=False)
     # 指定された日付が認定期間内にあるかどうかをチェックしてフィルタリング
     additional_table = additional_table[
         (additional_table["認定開始日"] <= cutoff_date)
@@ -1390,21 +1362,21 @@ def merge_additional_care_columns(
 
 def calculate_certification_period(row):
     certification_date = row["要介護認定日"]
-    application_date = row["要介護認定申請日"]
+    # application_date = row["要介護認定申請日"]
 
     start_date = certification_date
 
     months_to_add = row["認定有効月数"]
 
-    if certification_date.month == application_date.month:
-        if certification_date.month == 12:
-            base_date = datetime(certification_date.year + 1, 1, 1)
-        else:
-            base_date = datetime(
-                certification_date.year, certification_date.month + 1, 1
-            )
-    else:
-        base_date = start_date
+    # if certification_date.month == application_date.month:
+    #     if certification_date.month == 12:
+    #         base_date = datetime(certification_date.year + 1, 1, 1)
+    #     else:
+    #         base_date = datetime(
+    #             certification_date.year, certification_date.month + 1, 1
+    #         )
+    # else:
+    base_date = start_date
 
     end_year = base_date.year + (base_date.month - 1 + months_to_add) // 12
     end_month = (base_date.month - 1 + months_to_add) % 12 + 1
