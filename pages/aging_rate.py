@@ -1,11 +1,13 @@
+import math
 import os
 import re
 from typing import Dict, List
 
+import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objs as go
-from dash import Input, Output, callback, dcc, html
+from dash import Input, Output, State, callback, dcc, html, no_update
 
 data_directory = "/usr/src/data/save/"
 file_pattern = re.compile(r"認定状態・総人口20(\d{2}).csv")
@@ -201,9 +203,17 @@ contents = html.Div(
         ),
         dbc.Row(
             [
-                dcc.Graph(
-                    id="aging-rate-graph",
-                    style={"height": "80vh"},
+                html.Div(
+                    [
+                        dcc.Graph(
+                            id="aging-rate-graph",
+                            style={"height": "80vh"},
+                        ),
+                        html.Pre(id="relayout-data"),
+                        html.Div(
+                            id="aging-zoom-range-store", style={"display": "none"}
+                        ),
+                    ]
                 )
             ],
         ),
@@ -257,16 +267,12 @@ settings = html.Div(
                             className="setting_dropdown",
                             placeholder="すべての区を表示",
                         ),
-                        html.P("ファイルの出力", className="font-weight-bold option_P"),
-                        dcc.Dropdown(
-                            id="",
-                            options=[
-                                {"label": "行政区別", "value": "district"},
-                                {"label": "小学校区別", "value": "schoolzone"},
-                            ],
-                            value="district",
-                            className="setting_dropdown",
-                            placeholder="種類を選択してください",
+                        html.Br(),
+                        dbc.Input(
+                            id="file-name-input",
+                            placeholder="ファイル名を入力",
+                            type="text",
+                            className="setting_button",
                         ),
                         dbc.Button(
                             id="aging-download-button",
@@ -274,6 +280,34 @@ settings = html.Div(
                             className="text-white setting_button d-flex justify-content-center",
                             external_link="true",
                             color="secondary",
+                        ),
+                        dbc.Modal(
+                            [
+                                dbc.ModalHeader(id="aging-modal-header"),
+                                dbc.ModalBody(
+                                    [
+                                        html.Div(id="aging-modal-text"),
+                                        html.Div(
+                                            [
+                                                dbc.Button(
+                                                    "ダウンロード",
+                                                    id="download-confirm-button",
+                                                    color="secondary",
+                                                    className="me-2 bg-primary",
+                                                ),
+                                                dbc.Button(
+                                                    "戻る",
+                                                    id="cancel-button",
+                                                    color="secondary",
+                                                ),
+                                            ],
+                                            className="d-flex justify-content-center",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            id="aging-modal",
+                            is_open=False,
                         ),
                         dcc.Download(id="download-aging-rate"),
                     ],
@@ -429,9 +463,155 @@ def update_display_area_options(selected_distinction):
 
 
 @callback(
+    [
+        Output("aging-modal", "is_open"),
+        Output("aging-modal-header", "children"),
+        Output("aging-modal-text", "children"),
+    ],
+    [
+        Input("aging-download-button", "n_clicks"),
+        Input("cancel-button", "n_clicks"),
+        Input("download-confirm-button", "n_clicks"),
+    ],
+    [
+        State("aging-modal", "is_open"),
+        State("select-distinction-dropdown", "value"),
+        State("display-area-dropdown", "value"),
+        State("file-name-input", "value"),
+        State("aging-zoom-range-store", "children"),
+    ],
+)
+def toggle_modal(
+    n_open, n_cancel, n_download, is_open, distinction, areas, file_name, zoom_range
+):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    distinction_text = (
+        "行政区別"
+        if distinction == "district"
+        else "小学校区別"
+        if distinction == "schoolzone"
+        else "未選択(※自動的に行政区別が選択されます)"
+    )
+    file_name = re.sub(r"[\s　]+", "", file_name) if file_name else ""
+    if file_name is None or file_name == "":
+        file_name = "aging_rate.csv(※ファイル名未入力時)"
+    else:
+        file_name = f"{file_name}.csv"
+    areas_text = ", ".join(areas) if areas else "すべての区"
+    if zoom_range:
+        start_year = math.ceil(zoom_range[0])
+        end_year = math.floor(zoom_range[1])
+        year_text = f"{start_year}年 - {end_year}年"
+    else:
+        year_text = "すべての年度"
+    modal_body_text = [
+        html.Div("ファイル名"),
+        html.P(file_name),
+        html.Div("区別種類"),
+        html.P(distinction_text),
+        html.Div(
+            [
+                html.Div("選択区"),
+                html.P(areas_text),
+            ]
+        ),
+        html.Div("選択年度"),
+        html.P(year_text),
+    ]
+
+    if button_id == "aging-download-button":
+        return True, "ファイルの出力", modal_body_text
+    elif button_id in ["cancel-button", "download-confirm-button"]:
+        return False, "", modal_body_text
+    return is_open, "", modal_body_text
+
+
+@callback(
     Output("download-aging-rate", "data"),
-    [Input("aging-download-button", "n_clicks")],
+    [Input("download-confirm-button", "n_clicks")],
+    [
+        State("select-distinction-dropdown", "value"),
+        State("display-area-dropdown", "value"),
+        State("file-name-input", "value"),
+        State("aging-zoom-range-store", "children"),
+    ],
     prevent_initial_call=True,
 )
-def download_csv(n_clicks):
-    return dcc.send_file("/usr/src/data/save/高齢化率(sample).csv")
+def download_file(n_clicks, distinction, areas, file_name, zoom_range):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "download-confirm-button":
+        filepath = "/usr/src/data/save/20240124aging_rate.csv"
+        df = pd.read_csv(filepath)
+        df_filtered = filter_df_by_distinction(df, distinction)
+        if areas:
+            df_filtered = df_filtered[df_filtered["区名"].isin(areas)]
+        if zoom_range:
+            df_filtered = df_filtered[
+                (df_filtered["年度"] >= float(zoom_range[0]))
+                & (df_filtered["年度"] <= float(zoom_range[1]))
+            ]
+        if file_name is None or file_name == "":
+            file_name = "aging_rate"
+        return dcc.send_data_frame(df_filtered.to_csv, f"{file_name}.csv", index=False)
+
+
+@callback(
+    Output("aging-zoom-range-store", "children"),
+    [
+        Input("aging-rate-graph", "relayoutData"),
+        Input("select-distinction-dropdown", "value"),
+        Input("display-area-dropdown", "value"),
+    ],
+)
+def update_zoom_range_store(relayoutData, distinction, areas):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    # ドロップダウンメニューの選択が変更された時は初期化
+    if (
+        button_id == "select-distinction-dropdown"
+        or button_id == "display-area-dropdown"
+    ):
+        return None
+    # グラフ内でダブルクリックされた時は初期化
+    if "xaxis.autorange" in relayoutData or "yaxis.autorange" in relayoutData:
+        return None
+    # 縦方向のみのズーム操作の時は更新しない
+    if ("yaxis.range[0]" in relayoutData or "yaxis.range[1]" in relayoutData) and (
+        "xaxis.range[0]" not in relayoutData or "xaxis.range[1]" not in relayoutData
+    ):
+        return no_update
+    # 縦方向のズーム操作が含まれる時は更新する
+    if (
+        relayoutData
+        and "xaxis.range[0]" in relayoutData
+        and "xaxis.range[1]" in relayoutData
+    ):
+        return [relayoutData["xaxis.range[0]"], relayoutData["xaxis.range[1]"]]
+    return no_update
+
+
+def filter_df_by_distinction(df, distinction):
+    if distinction == "district" or distinction is None:
+        filter_condition = "行政区"
+    elif distinction == "schoolzone":
+        filter_condition = "小学校区"
+    else:
+        raise ValueError("Invalid distinction value")
+
+    filtered_df = df[df["区別種類"] == filter_condition]
+    filtered_df = filtered_df.drop(columns=["区別種類"])
+    return filtered_df
