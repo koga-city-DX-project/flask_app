@@ -8,6 +8,7 @@ from dash.dependencies import Input, Output
 from pages import (
     aging_rate,
     care_level_rate,
+    cause_death,
     home,
     population_distribution,
     primary_care,
@@ -25,6 +26,7 @@ page_layouts = {
     "/select_populations": select_populations.layout,
     "/aging_rate": aging_rate.layout,
     "/population_distribution": population_distribution.layout,
+    "/cause_death": cause_death.layout,
 }
 external_stylesheets = ["bootstrap.min.css"]
 app = dash.Dash(

@@ -354,8 +354,8 @@ layout = html.Div(
     ]
 )
 
-create_aging_data()  # グラフ表示用のデータを作成
-create_data_to_export()  # 出力用のデータを作成
+# create_aging_data()  # グラフ表示用のデータを作成
+# create_data_to_export()  # 出力用のデータを作成
 
 
 @callback(

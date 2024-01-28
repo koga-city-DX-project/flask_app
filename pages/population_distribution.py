@@ -57,14 +57,39 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         html.Hr(),
-                        html.P("何かのオプション", className="font-weight-bold"),
+                        html.P("年代", className="font-weight-bold option_P"),
+                        dcc.Dropdown(
+                            id="population-age-dropdown",
+                            options=[],
+                            className="setting_dropdown",
+                        ),
+                        html.P("性別", className="font-weight-bold option_P"),
+                        dcc.Dropdown(
+                            id="sex-type-dropdown",
+                            options=[
+                                {"label": "男性", "value": "men"},
+                                {"label": "女性", "value": "women"},
+                                {"label": "すべて", "value": "all"},
+                            ],
+                            className="setting_dropdown",
+                        ),
+                        html.P("比較地域", className="font-weight-bold option_P"),
                         dcc.Dropdown(
                             id="graph-type-dropdown",
                             options=[
-                                {"label": "折れ線グラフ", "value": "line"},
-                                {"label": "縦積み棒グラフ", "value": "stacked_bar"},
+                                {"label": "古賀市", "value": "koga"},
+                                {"label": "福岡県", "value": "hukuoka"},
+                                {"label": "国", "value": "all"},
                             ],
-                            value="line",
+                            className="setting_dropdown",
+                        ),
+                        html.P("高齢化率", className="font-weight-bold option_P"),
+                        dcc.Dropdown(
+                            id="graph-type-dropdown",
+                            options=[
+                                {"label": "表示", "value": "show"},
+                                {"label": "非表示", "value": "hidden"},
+                            ],
                             className="setting_dropdown",
                         ),
                         dbc.Button(

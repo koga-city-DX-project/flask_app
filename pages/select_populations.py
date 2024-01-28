@@ -63,7 +63,7 @@ contents = html.Div(
                 dbc.Col(
                     dbc.Button(
                         "死因(古賀市・福岡県・国)",
-                        href="#",
+                        href="/cause_death",
                         className="menu_btn d-flex align-items-center justify-content-center",
                         external_link="true",
                         color="dark",

@@ -3,7 +3,6 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash import Input, Output, callback, dcc, html
 
-df_path = "/usr/src/data/save/介護認定管理.csv"
 contents = html.Div(
     [
         dbc.Row(
@@ -57,7 +56,7 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         html.Hr(),
-                        html.P("何かのオプション", className="font-weight-bold"),
+                        html.P("何かのオプション", className="font-weight-bold option_P"),
                         dcc.Dropdown(
                             id="graph-type-dropdown",
                             options=[
