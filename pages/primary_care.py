@@ -56,7 +56,7 @@ contents = html.Div(
             [
                 dcc.Graph(
                     id="certification_rate_graph",
-                    style={"height": "80vh"},
+                    style={"height": "95vh"},
                 ),
             ]
         ),
@@ -90,7 +90,7 @@ settings = html.Div(
                         ),
                         html.Hr(),
                         html.P(
-                            "集計対象選択",
+                            "区別種類の選択",
                             style={
                                 "marginTop": "8px",
                                 "marginBottom": "4px",
@@ -105,10 +105,10 @@ settings = html.Div(
                             ],
                             value="行政区",
                             className="setting_dropdown",
-                            placeholder="集計対象選択",
+                            placeholder="区別種類の選択",
                         ),
                         html.P(
-                            "集計対象区選択",
+                            "表示区の絞り込み",
                             style={
                                 "marginTop": "8px",
                                 "marginBottom": "4px",
@@ -123,7 +123,7 @@ settings = html.Div(
                             value="全て",
                             multi=True,
                             className="setting_dropdown",
-                            placeholder="集計対象区選択",
+                            placeholder="表示区の絞り込み",
                         ),
                         dbc.Button(
                             href="#",
@@ -207,7 +207,7 @@ def update_graph(target_select, ward_select):
     else:
         if isinstance(ward_select, list):
             if len(ward_select) > 1:  # 複数選択の場合
-                title = f"{target_select}別の要介護認定率推移"
+                title = f"{target_select}別の要介護認定率の年次推移"
                 for ward in ward_select:
                     filtered_data = data[data[target_select] == ward]
                     process_data_and_add_trace(
@@ -216,22 +216,22 @@ def update_graph(target_select, ward_select):
             else:  # 単一選択の場合
                 ward = ward_select[0]
                 filtered_data = data[data[target_select] == ward]
-                title = f"{ward}の要介護認定率と後期高齢者率推移"
+                title = f"{ward}の要介護認定率と後期高齢者率の年次推移"
                 process_data_and_add_trace(
                     fig, filtered_data, ward, include_elderly=True
                 )
         else:
             filtered_data = data[data[target_select] == ward_select]
-            title = f"{target_select}別の要介護認定率と後期高齢者率推移"
+            title = f"{target_select}別の要介護認定率と後期高齢者率の年次推移"
             process_data_and_add_trace(
                 fig, filtered_data, ward_select, include_elderly=True
             )
 
     fig.update_layout(
-        title=title,
-        xaxis_title="年",
-        yaxis_title="割合 (%)",  # y軸のタイトルを変更
-        yaxis=dict(tickformat=".2%"),  # y軸の値をパーセンテージ形式に設定
+        title_text=title,
+        title_font_size=24,
+        xaxis=dict(title="年度", title_font=dict(size=20)),
+        yaxis=dict(title="高齢化率(%)", title_font=dict(size=20), tickformat=".2%"),
         barmode="overlay",
     )
 
@@ -269,8 +269,11 @@ def process_data_and_add_trace(fig, filtered_data, label, include_elderly=False)
                 x=grouped["年"],
                 y=grouped["後期高齢者率"],
                 name=f"{label}の後期高齢者率",
-                marker=dict(color="lightblue"),
-                opacity=0.7,  # 透明度の設定
+                marker=dict(
+                    color="lightblue",
+                    line=dict(color="#333", width=2),
+                ),
+                opacity=0.5,  # 透明度の設定
             )
         )
 
