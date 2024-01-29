@@ -205,7 +205,7 @@ def process_data(data_directory, file_pattern):
 
 color_map = {
     "要支援１": "blue",
-    "要支援２": "#92cff0",
+    "要支援２": "#5bb8eb",
     "要介護１": "green",
     "要介護２": "#0fd614",
     "要介護３": "#ffbb00",
