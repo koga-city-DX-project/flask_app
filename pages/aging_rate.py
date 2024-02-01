@@ -83,6 +83,7 @@ school_zone_names: List[str] = []
 
 
 def create_aging_data():
+    print("高齢化率のデータを作成中")
     """
     高齢化率の年次推移を計算する関数。
     """
@@ -95,7 +96,7 @@ def create_aging_data():
             df = pd.read_csv(file_path, encoding="utf-8", dtype=column_types)
             total_population = len(df)
             df["年齢"] = year - df["生年月日_year"]
-            elderly_data = df[df["年齢"] >= 65].copy()
+            elderly_data = df[df["年齢"] >= 66].copy()
             total_elderly_population = len(elderly_data)
             elderly_data.loc[:, "行政区"] = elderly_data["自治会コード名"].str.extract(r"^(.*区)")
 
@@ -145,6 +146,7 @@ def create_aging_data():
 
 
 def create_data_to_export():
+    print("高齢化率の出力用データ作成中")
     """
     出力するデータを作成する関数。
     """
@@ -354,8 +356,8 @@ layout = html.Div(
     ]
 )
 
-# create_aging_data()  # グラフ表示用のデータを作成
-# create_data_to_export()  # 出力用のデータを作成
+create_aging_data()  # グラフ表示用のデータを作成
+create_data_to_export()  # 出力用のデータを作成
 
 
 @callback(
