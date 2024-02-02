@@ -70,8 +70,8 @@ def load_and_process_files():
         df["行政区"] = df["自治会コード名"].str.extract("(.*区)")
         df["小学校区"] = df["小学校区コード名"].str.extract("(.*小)")
         df["年齢"] = df["年"].astype(int) - df["生年月日_year"]
-        late_elderly_data = df[df["年齢"] >= 75]
-        df = df[df["年齢"] >= 65]  # 修正: 65歳未満のデータを削除
+        late_elderly_data = df[df["年齢"] >= 76]
+        df = df[df["年齢"] >= 66]  # 修正: 65歳未満のデータを削除
         all_data.append(df)
         # 全体のデータに対する集計
         overall_data_count = df.groupby("年").size()
