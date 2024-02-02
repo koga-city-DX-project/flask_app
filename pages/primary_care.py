@@ -349,20 +349,6 @@ def update_graph(target_select, ward_select, overall_compare):
             ward_select = [ward_select]
         for ward in ward_select:
             # 行政区別のデータを使用
-            if overall_compare == ["c1"]:
-                certified_rates = [
-                    all_data_rate[year]["Total Certified Rate"] for year in years
-                ]
-                c_rates = [list(rate.values())[0] for rate in certified_rates]
-                fig.add_trace(
-                    go.Scatter(
-                        x=years,
-                        y=c_rates,
-                        mode="lines+markers",
-                        name="全体 要介護認定率",
-                    )
-                )
-
             certified_rates = [
                 all_data_rate[year]["District Certified Rate"].get(ward, 0)
                 for year in years
@@ -399,25 +385,24 @@ def update_graph(target_select, ward_select, overall_compare):
             elif len(ward_select) > 1:
                 title = f"{target_select}の要介護認定率の年次推移"
                 ytitle = " "
+        if overall_compare == ["c1"]:
+            certified_rates = [
+                all_data_rate[year]["Total Certified Rate"] for year in years
+            ]
+            c_rates = [list(rate.values())[0] for rate in certified_rates]
+            fig.add_trace(
+                go.Scatter(
+                    x=years,
+                    y=c_rates,
+                    mode="lines+markers",
+                    name="全体 要介護認定率",
+                )
+            )
     elif target_select == "小学校区別":
         if isinstance(ward_select, str):
             ward_select = [ward_select]
         for ward in ward_select:
             # 小学校区別のデータを使用
-            if overall_compare == ["c1"]:
-                certified_rates = [
-                    all_data_rate[year]["Total Certified Rate"] for year in years
-                ]
-                c_rates = [list(rate.values())[0] for rate in certified_rates]
-                fig.add_trace(
-                    go.Scatter(
-                        x=years,
-                        y=c_rates,
-                        mode="lines+markers",
-                        name="全体 要介護認定率",
-                    )
-                )
-
             certified_rates = [
                 all_data_rate[year]["School Certified Rate"].get(ward, 0)
                 for year in years
@@ -455,7 +440,19 @@ def update_graph(target_select, ward_select, overall_compare):
             elif len(ward_select) > 1:
                 title = f"{target_select}の要介護認定率の年次推移"
                 ytitle = " "
-
+        if overall_compare == ["c1"]:
+            certified_rates = [
+                all_data_rate[year]["Total Certified Rate"] for year in years
+            ]
+            c_rates = [list(rate.values())[0] for rate in certified_rates]
+            fig.add_trace(
+                go.Scatter(
+                    x=years,
+                    y=c_rates,
+                    mode="lines+markers",
+                    name="全体 要介護認定率",
+                )
+            )
     fig.update_layout(
         title_text=title,
         title_font_size=24,
