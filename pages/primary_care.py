@@ -76,7 +76,7 @@ def load_and_process_files():
         # 全体のデータに対する集計
         overall_data_count = df.groupby("年").size()
         overall_late_elderly_count = late_elderly_data.groupby("年").size()
-        overall_certified_count = len(df[df["認定状態"] == "認定済み"])
+        overall_certified_count = df[df["認定状態"] == "認定済み"].groupby("年").size()
         overall_certified_rate = overall_certified_count / overall_data_count
         overall_late_elderly_rate = overall_late_elderly_count / overall_data_count
 
@@ -100,10 +100,16 @@ def load_and_process_files():
 
         # 集計結果を辞書に保存
         all_data_rate[year] = {
+            "Total Certified Count": overall_certified_count.to_dict(),
+            "Total Late Elderly Count": overall_late_elderly_count.to_dict(),
             "Total Certified Rate": overall_certified_rate.to_dict(),
             "Total Late Elderly Rate": overall_late_elderly_rate.to_dict(),
+            "District Certified Count": district_certified_count.to_dict(),
+            "District Elderly Count": district_elderly_count.to_dict(),
             "District Certified Rate": district_certified_rate.to_dict(),
             "District Elderly Rate": district_elderly_rate.to_dict(),
+            "School Certified Count": school_certified_count.to_dict(),
+            "School Elderly Count": school_elderly_count.to_dict(),
             "School Certified Rate": school_certified_rate.to_dict(),
             "School Elderly Rate": school_elderly_rate.to_dict(),
         }
@@ -141,13 +147,49 @@ def school_option_set():
 
 
 def all_option_set():
-    options = [{"label": "全て", "value": "全て"}]
+    options = [{"label": "全体", "value": "全体"}]
     return options
 
 
 dict_op = district_option_set()
 scho_op = school_option_set()
 all_op = all_option_set()
+
+
+def overall_checked(fig, years, opt):
+    certified_rates = [all_data_rate[year]["Total Certified Rate"] for year in years]
+    c_rates = [list(rate.values())[0] for rate in certified_rates]
+    fig.add_trace(
+        go.Scatter(
+            x=years,
+            y=c_rates,
+            mode="lines+markers",
+            name=f"全体 要介護認定{opt}",
+        )
+    )
+
+
+def elderly_graphview(fig, years, elderly_rates, ward, opt, val):
+    if val == 1:
+        fig.add_trace(
+            go.Bar(
+                x=years,
+                y=elderly_rates,
+                name=f"{ward} 後期高齢者{opt}",
+                marker=dict(
+                    color="lightblue",
+                    line=dict(color="#333", width=2),
+                ),
+                opacity=0.5,  # 透明度の設定
+            )
+        )
+        title = f"{ward}の要介護認定{opt}と後期高齢者{opt}の年次推移"
+        ytitle = f"・後期高齢者{opt}"
+    elif val > 1:
+        title = f"行政区別の要介護認定{opt}の年次推移"
+        ytitle = ""
+    return title, ytitle
+
 
 contents = html.Div(
     [
@@ -213,13 +255,38 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="target_select",
                             options=[
-                                {"label": "全て", "value": "全て"},
-                                {"label": "行政区別", "value": "行政区別"},
-                                {"label": "小学校区別", "value": "小学校区別"},
+                                {
+                                    "label": "全体　認定率・後期高齢者比率(%)",
+                                    "value": "全体P",
+                                },
+                                {
+                                    "label": "全体　認定数・後期高齢者数(件)",
+                                    "value": "全体C",
+                                },
+                                {
+                                    "label": "行政区別　認定率・後期高齢者比率(%)",
+                                    "value": "行政区別P",
+                                },
+                                {
+                                    "label": "行政区別　認定数・後期高齢者数(件)",
+                                    "value": "行政区別C",
+                                },
+                                {
+                                    "label": "小学校区別　認定率・後期高齢者比率(%)",
+                                    "value": "小学校区別P",
+                                },
+                                {
+                                    "label": "小学校区別　認定数・後期高齢者数(件)",
+                                    "value": "小学校区別C",
+                                },
                             ],
-                            value="全て",
+                            value="全体P",
                             className="setting_dropdown",
                             placeholder="区別種類の選択",
+                            clearable=False,
+                            style={
+                                "fontSize": "15px",
+                            },
                         ),
                         html.P(
                             "表示区の絞り込み",
@@ -280,15 +347,15 @@ layout = html.Div(
     Input("target_select", "value"),
 )
 def update_menu(target_select):
-    if target_select == "行政区別":
+    if target_select in ["行政区別P", "行政区別C"]:
         options = dict_op
         value = dict_op[0]["value"]
         multi = True
-    elif target_select == "小学校区別":
+    elif target_select in ["小学校区別P", "小学校区別C"]:
         options = scho_op
         value = scho_op[0]["value"]
         multi = True
-    elif target_select == "全て":
+    elif target_select in ["全体P", "全体C"]:
         options = all_op
         value = all_op[0]["value"]
         multi = False
@@ -306,27 +373,45 @@ def update_graph(target_select, ward_select, overall_compare):
     # 「全体」「行政区別」「小学校区別」の選択に応じて、異なるデータをグラフに反映させる
     global all_data_rate
     fig = go.Figure()
-    ytitle = "・後期高齢者割合"
+    ytitle = ""
+    tform = ""
     years = sorted(all_data_rate.keys())  # 年度のリスト
-    if target_select == "全て":
-        # 年度ごとにデータを抽出し、グラフを生成
-        certified_rates = [
-            all_data_rate[year]["Total Certified Rate"] for year in years
-        ]
-        elderly_rates = [
-            all_data_rate[year]["Total Late Elderly Rate"] for year in years
-        ]
-        c_years = [list(rate.keys())[0] for rate in certified_rates]
-        c_rates = [list(rate.values())[0] for rate in certified_rates]
-        e_years = [list(rate.keys())[0] for rate in elderly_rates]
-        e_rates = [list(rate.values())[0] for rate in elderly_rates]
+    # 年度ごとにデータを抽出し、グラフを生成
+    if target_select == "全体P" or target_select == "全体C":
+        if target_select == "全体P":
+            certified_rates = [
+                all_data_rate[year]["Total Certified Rate"] for year in years
+            ]
+            elderly_rates = [
+                all_data_rate[year]["Total Late Elderly Rate"] for year in years
+            ]
+            c_years = [list(rate.keys())[0] for rate in certified_rates]
+            c_rates = [list(rate.values())[0] for rate in certified_rates]
+            e_years = [list(rate.keys())[0] for rate in elderly_rates]
+            e_rates = [list(rate.values())[0] for rate in elderly_rates]
+            opt = "率(%)"
+            tform = ".2%"
+        elif target_select == "全体C":
+            certified_rates = [
+                all_data_rate[year]["Total Certified Count"] for year in years
+            ]
+            elderly_rates = [
+                all_data_rate[year]["Total Late Elderly Count"] for year in years
+            ]
+            c_years = [list(rate.keys())[0] for rate in certified_rates]
+            c_rates = [list(rate.values())[0] for rate in certified_rates]
+            e_years = [list(rate.keys())[0] for rate in elderly_rates]
+            e_rates = [list(rate.values())[0] for rate in elderly_rates]
+            opt = "数(件)"
+            tform = ""
+
         # 要介護認定率の折れ線グラフを追加
         fig.add_trace(
             go.Scatter(
                 x=c_years,
                 y=c_rates,
                 mode="lines+markers",
-                name="全体 要介護認定率",
+                name=f"全体 要介護認定{opt}",
             )
         )
         # 後期高齢化率の縦棒グラフを追加
@@ -334,7 +419,7 @@ def update_graph(target_select, ward_select, overall_compare):
             go.Bar(
                 x=e_years,
                 y=e_rates,
-                name="全体 後期高齢者割合",
+                name=f"全体 後期高齢者{opt}",
                 marker=dict(
                     color="lightblue",
                     line=dict(color="#333", width=2),
@@ -342,125 +427,100 @@ def update_graph(target_select, ward_select, overall_compare):
                 opacity=0.5,  # 透明度の設定
             )
         )
-        title = "全体の要介護認定率と後期高齢者割合の年次推移"
-    elif target_select == "行政区別":
-        # 行政区別または小学校区別のグラフを生成
+        title = f"全体の要介護認定{opt}と後期高齢者{opt}の年次推移"
+
+    elif target_select == "行政区別P" or target_select == "行政区別C":
         if isinstance(ward_select, str):
             ward_select = [ward_select]
         for ward in ward_select:
-            # 行政区別のデータを使用
-            certified_rates = [
-                all_data_rate[year]["District Certified Rate"].get(ward, 0)
-                for year in years
-            ]
-            elderly_rates = [
-                all_data_rate[year]["District Elderly Rate"].get(ward, 0)
-                for year in years
-            ]
-            # 要介護認定率の折れ線グラフを追加
+            if target_select == "行政区別P":
+                certified_rates = [
+                    all_data_rate[year]["District Certified Rate"].get(ward, 0)
+                    for year in years
+                ]
+                elderly_rates = [
+                    all_data_rate[year]["District Elderly Rate"].get(ward, 0)
+                    for year in years
+                ]
+                opt = "率(%)"
+                tform = ".2%"
+            elif target_select == "行政区別C":
+                certified_rates = [
+                    all_data_rate[year]["District Certified Count"].get(ward, 0)
+                    for year in years
+                ]
+                elderly_rates = [
+                    all_data_rate[year]["District Elderly Count"].get(ward, 0)
+                    for year in years
+                ]
+                opt = "数(件)"
+                tform = ""
             fig.add_trace(
                 go.Scatter(
-                    x=years,
+                    x=years,  # 直接 years を使用
                     y=certified_rates,
                     mode="lines+markers",
-                    name=f"{ward} 要介護認定率",
+                    name=f"{ward} 要介護認定{opt}",
                 )
             )
-
-            # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
-            if len(ward_select) == 1:
-                fig.add_trace(
-                    go.Bar(
-                        x=years,
-                        y=elderly_rates,
-                        name=f"{ward} 後期高齢者割合",
-                        marker=dict(
-                            color="lightblue",
-                            line=dict(color="#333", width=2),
-                        ),
-                        opacity=0.5,  # 透明度の設定
-                    )
-                )
-                title = f"{ward}の要介護認定率と後期高齢者割合の年次推移"
-            elif len(ward_select) > 1:
-                title = f"{target_select}の要介護認定率の年次推移"
-                ytitle = " "
+        # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
+        if len(ward_select) == 1:
+            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
+        elif len(ward_select) > 1:
+            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
         if overall_compare == ["c1"]:
-            certified_rates = [
-                all_data_rate[year]["Total Certified Rate"] for year in years
-            ]
-            c_rates = [list(rate.values())[0] for rate in certified_rates]
-            fig.add_trace(
-                go.Scatter(
-                    x=years,
-                    y=c_rates,
-                    mode="lines+markers",
-                    name="全体 要介護認定率",
-                )
-            )
-    elif target_select == "小学校区別":
+            overall_checked(fig, years, opt)
+
+    elif target_select == "小学校区別P" or target_select == "小学校区別C":
         if isinstance(ward_select, str):
             ward_select = [ward_select]
         for ward in ward_select:
-            # 小学校区別のデータを使用
-            certified_rates = [
-                all_data_rate[year]["School Certified Rate"].get(ward, 0)
-                for year in years
-            ]
-            elderly_rates = [
-                all_data_rate[year]["School Elderly Rate"].get(ward, 0)
-                for year in years
-            ]
-
-            # 要介護認定率の折れ線グラフを追加
+            if target_select == "小学校区別P":
+                certified_rates = [
+                    all_data_rate[year]["School Certified Rate"].get(ward, 0)
+                    for year in years
+                ]
+                elderly_rates = [
+                    all_data_rate[year]["School Elderly Rate"].get(ward, 0)
+                    for year in years
+                ]
+                opt = "率(%)"
+                tform = ".2%"
+            elif target_select == "小学校区別C":
+                certified_rates = [
+                    all_data_rate[year]["School Certified Count"].get(ward, 0)
+                    for year in years
+                ]
+                elderly_rates = [
+                    all_data_rate[year]["School Elderly Count"].get(ward, 0)
+                    for year in years
+                ]
+                opt = "数(件)"
+                tform = ""
             fig.add_trace(
                 go.Scatter(
-                    x=years,
+                    x=years,  # 直接 years を使用
                     y=certified_rates,
                     mode="lines+markers",
-                    name=f"{ward} 要介護認定率",
+                    name=f"{ward} 要介護認定{opt}",
                 )
             )
-
-            # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
-            if len(ward_select) == 1:
-                fig.add_trace(
-                    go.Bar(
-                        x=years,
-                        y=elderly_rates,
-                        name=f"{ward} 後期高齢化率",
-                        marker=dict(
-                            color="lightblue",
-                            line=dict(color="#333", width=2),
-                        ),
-                        opacity=0.5,  # 透明度の設定
-                    )
-                )
-                title = f"{ward}校区の要介護認定率と後期高齢者割合の年次推移"
-            elif len(ward_select) > 1:
-                title = f"{target_select}の要介護認定率の年次推移"
-                ytitle = " "
+        # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
+        if len(ward_select) == 1:
+            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
+        elif len(ward_select) > 1:
+            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
         if overall_compare == ["c1"]:
-            certified_rates = [
-                all_data_rate[year]["Total Certified Rate"] for year in years
-            ]
-            c_rates = [list(rate.values())[0] for rate in certified_rates]
-            fig.add_trace(
-                go.Scatter(
-                    x=years,
-                    y=c_rates,
-                    mode="lines+markers",
-                    name="全体 要介護認定率",
-                )
-            )
+            overall_checked(fig, years, opt)
+
     fig.update_layout(
         title_text=title,
         title_font_size=24,
         xaxis=dict(title="年度", title_font=dict(size=20)),
         yaxis=dict(
-            title="認定率" + ytitle + "(%)",
+            title=f"認定{opt}{ytitle}",
             title_font=dict(size=20),
-            tickformat=".2%",
+            tickformat=tform,
         ),
         barmode="overlay",
     )
