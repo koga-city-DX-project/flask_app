@@ -288,7 +288,7 @@ settings = html.Div(
                         ),
                         html.Br(),
                         dbc.Input(
-                            id="file-name-input",
+                            id="aging-file-name-input",
                             placeholder="ファイル名を入力",
                             type="text",
                             className="setting_button",
@@ -310,13 +310,13 @@ settings = html.Div(
                                             [
                                                 dbc.Button(
                                                     "ダウンロード",
-                                                    id="download-confirm-button",
+                                                    id="aging-download-confirm-button",
                                                     color="secondary",
                                                     className="me-2 bg-primary",
                                                 ),
                                                 dbc.Button(
                                                     "戻る",
-                                                    id="cancel-button",
+                                                    id="aging-cancel-button",
                                                     color="secondary",
                                                 ),
                                             ],
@@ -489,14 +489,14 @@ def update_display_area_options(selected_distinction):
     ],
     [
         Input("aging-download-button", "n_clicks"),
-        Input("cancel-button", "n_clicks"),
-        Input("download-confirm-button", "n_clicks"),
+        Input("aging-cancel-button", "n_clicks"),
+        Input("aging-download-confirm-button", "n_clicks"),
     ],
     [
         State("aging-modal", "is_open"),
         State("select-distinction-dropdown", "value"),
         State("display-area-dropdown", "value"),
-        State("file-name-input", "value"),
+        State("aging-file-name-input", "value"),
         State("aging-zoom-range-store", "children"),
     ],
 )
@@ -545,18 +545,18 @@ def toggle_modal(
 
     if button_id == "aging-download-button":
         return True, "ファイルの出力", modal_body_text
-    elif button_id in ["cancel-button", "download-confirm-button"]:
+    elif button_id in ["aging-cancel-button", "aging-download-confirm-button"]:
         return False, "", modal_body_text
     return is_open, "", modal_body_text
 
 
 @callback(
     Output("download-aging-rate", "data"),
-    [Input("download-confirm-button", "n_clicks")],
+    [Input("aging-download-confirm-button", "n_clicks")],
     [
         State("select-distinction-dropdown", "value"),
         State("display-area-dropdown", "value"),
-        State("file-name-input", "value"),
+        State("aging-file-name-input", "value"),
         State("aging-zoom-range-store", "children"),
     ],
     prevent_initial_call=True,
@@ -568,7 +568,7 @@ def download_file(n_clicks, distinction, areas, file_name, zoom_range):
         button_id = "No clicks yet"
     else:
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    if button_id == "download-confirm-button":
+    if button_id == "aging-download-confirm-button":
         filepath = "/usr/src/data/save/20240124aging_rate.csv"
         df = pd.read_csv(filepath)
         df_filtered = filter_df_by_distinction(df, distinction)
