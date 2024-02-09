@@ -27,6 +27,23 @@ contents = html.Div(
                 dcc.Graph(
                     id="aging_rate-graph",
                     style={"height": "80vh"},
+                    config={
+                                "displayModeBar": True,
+                                "displaylogo": False,
+                                "modeBarButtonsToAdd": [
+                                    "pan2d",
+                                    "autoScale2d",
+                                ],
+                                "modeBarButtonsToRemove": [
+                                    "zoomIn2d",
+                                    "zoomOut2d",
+                                    "select2d",
+                                    "lasso2d",
+                                    "toggleSpikelines",
+                                    "hoverClosestCartesian",
+                                    "hoverCompareCartesian",
+                                ],
+                            },
                 )
             ],
         ),
@@ -316,7 +333,10 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
             range=[0, 1],
             tickformat=".2%",
         ),
-        legend_title="地域",
+        legend=dict(
+        x=1.05,
+        y=1,
+    )
     )
 
     return fig
