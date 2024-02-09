@@ -61,6 +61,23 @@ contents = html.Div(
                 dcc.Graph(
                     id="care-level-graph",
                     style={"height": "80vh"},
+                    config={
+                                "displayModeBar": True,
+                                "displaylogo": False,
+                                "modeBarButtonsToAdd": [
+                                    "pan2d",
+                                    "autoScale2d",
+                                ],
+                                "modeBarButtonsToRemove": [
+                                    "zoomIn2d",
+                                    "zoomOut2d",
+                                    "select2d",
+                                    "lasso2d",
+                                    "toggleSpikelines",
+                                    "hoverClosestCartesian",
+                                    "hoverCompareCartesian",
+                                ],
+                            },
                 )
             ],
         ),
@@ -118,7 +135,7 @@ settings = html.Div(
                             placeholder="すべての介護度を表示",
                             multi=True,
                         ),
-                        html.P("グラフの種類", className="font-weight-bold"),
+                        html.P("グラフの種類", className="font-weight-bold option_P"),
                         dcc.Dropdown(
                             id="care-level-graph-type-dropdown",
                             options=[
@@ -245,18 +262,7 @@ def update_graph(selected_care_levels, selected_graph_type):
         )
         for care_level in care_levels:
             level_df = df[df["二次判定要介護度名"] == care_level]
-            fig.add_trace(
-                go.Scatter(
-                    x=level_df["Year"],
-                    y=level_df["割合"],
-                    mode="lines",
-                    name=care_level,
-                    line=dict(
-                        color=color_map.get(care_level, "black")
-                    ),  # カラーマップから色を設定、デフォルトは黒
-                )
-            )
-            if len(care_levels) == 1:
+            if len(care_levels) <= 2:
                 fig.add_trace(
                     go.Bar(
                         x=level_df["Year"],
@@ -265,10 +271,21 @@ def update_graph(selected_care_levels, selected_graph_type):
                         name=f"{care_level}総人数",
                         marker=dict(
                             color=color_map.get(care_level, "black"),
-                            opacity=0.4,
+                            opacity=0.6,
                         ),
                     )
                 )
+            fig.add_trace(
+                go.Scatter(
+                    x=level_df["Year"],
+                    y=level_df["割合"],
+                    mode="lines",
+                    name=care_level,
+                    line=dict(
+                        color=color_map.get(care_level, "black")
+                    ),
+                )
+            )
     elif selected_graph_type == "stacked_bar":
         # 積み上げ棒グラフのデータを準備
         data = []
@@ -280,8 +297,9 @@ def update_graph(selected_care_levels, selected_graph_type):
                     y=level_df["割合"],
                     name=care_level,
                     marker=dict(
-                        color=color_map.get(care_level, "black")
-                    ),  # カラーマップから色を設定、デフォルトは黒
+                        color=color_map.get(care_level, "black"),
+                        opacity=0.7,
+                    ),
                 )
             )
         fig = go.Figure(data=data)
@@ -290,8 +308,11 @@ def update_graph(selected_care_levels, selected_graph_type):
     # グラフのレイアウト設定
     fig.update_layout(
         title="選択された要介護度の年次推移",
+        title_font=dict(size=24),
         xaxis_title="年度",
+        xaxis_title_font=dict(size=20),
         yaxis_title="割合",
+        yaxis_title_font=dict(size=20),
         yaxis2=dict(
             title="人数",
             title_font=dict(size=20),
@@ -300,7 +321,7 @@ def update_graph(selected_care_levels, selected_graph_type):
             tickformat=",",
         ),
         legend_title="介護度名",
-        xaxis={"type": "category"},  # X軸をカテゴリ型に設定
+        xaxis={"type": "category"},
     )
 
     return fig
