@@ -2,7 +2,8 @@ import math
 import os
 import re
 from typing import Dict, List
-
+import base64
+from io import StringIO
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -152,6 +153,10 @@ def create_data_to_export():
     """
     data_to_export = []
     for year, data in aging_data.items():
+        total_elderly_population = data["TotalElderlyPopulation"]
+        total_population = data["TotalPopulation"]
+        overall_aging_rate = (total_elderly_population / total_population) * 100 if total_population > 0 else 0
+        
         for district, rate in data["AgingRateDistrict"].items():
             district_code = district_code_map.get(district, 0)
             data_to_export.append(
@@ -174,6 +179,8 @@ def create_data_to_export():
                     school_zone_code,
                 ]
             )
+        
+        data_to_export.append([year, "全体", "全体の平均", overall_aging_rate, 0])
 
     df_export = pd.DataFrame(
         data_to_export, columns=["年度", "区別種類", "区名", "高齢化率", "コード"]
@@ -286,7 +293,11 @@ settings = html.Div(
                             className="setting_dropdown",
                             placeholder="すべての区を表示",
                         ),
-                        html.Br(),
+                        dcc.Checklist(
+                            id="overall_compare-aging-rate-checklist",
+                            options=[{"label": "全体と比較する", "value": "show"}],
+                            className="setting_dropdown option_P",
+                        ),
                         dbc.Input(
                             id="aging-file-name-input",
                             placeholder="ファイル名を入力",
@@ -359,31 +370,30 @@ layout = html.Div(
 create_aging_data()  # グラフ表示用のデータを作成
 create_data_to_export()  # 出力用のデータを作成
 
+custom_colors = [
+    "blue",  # 濃い青
+    "#ff0000",  # 濃い赤
+    "green",  # 濃い緑
+    "#9467bd",  # 濃い紫
+    "#8c564b",  # 濃い茶色
+    "#e377c2",  # 濃いピンク
+    "gray",  # 濃いグレー
+    "#bcbd22",  # 濃い黄緑
+    "#17becf",  # 濃いシアン
+    "#ff6600",  # 濃いオレンジ
+]
+
 
 @callback(
     Output("aging-rate-graph", "figure"),
     [
         Input("select-distinction-dropdown", "value"),
         Input("display-area-dropdown", "value"),
+        Input("overall_compare-aging-rate-checklist", "value"),
     ],
 )
-def update_graph(selected_distinction, selected_areas):
-    fig = go.Figure(
-        layout=dict(
-            title=dict(text="高齢化率の年次推移", font=dict(size=24)),
-            xaxis=dict(title="年度", title_font=dict(size=20)),
-            yaxis=dict(title="高齢化率(%)", title_font=dict(size=20)),
-            yaxis2=dict(
-                title="高齢者総数",
-                title_font=dict(size=20),
-                overlaying="y",
-                side="right",
-                tickformat=",",
-            ),
-            hovermode="closest",
-            showlegend=True,
-        )
-    )
+def update_graph(selected_distinction, selected_areas, show_overall_aging_rate):
+    fig = go.Figure()
     years = sorted(aging_data.keys())
 
     if selected_distinction is None:
@@ -399,41 +409,49 @@ def update_graph(selected_distinction, selected_areas):
         aging_rate_key = "AgingRateSchoolZone"
 
     areas = sorted(areas, key=lambda area: code_map.get(area, float("inf")))
-    for area in areas:
-        if area != "average":
-            aging_rates = [
-                100 * aging_data[year][aging_rate_key].get(area, 0) for year in years
+    for i, area in enumerate(areas):
+        color = custom_colors[i % len(custom_colors)]
+        aging_rates = [
+            100 * aging_data[year][aging_rate_key].get(area, 0) for year in years
+        ]
+        fig.add_trace(
+            go.Scatter(
+                x=years,
+                y=aging_rates,
+                mode="lines+markers",
+                name=area,
+                line=dict(color=color),
+            )
+        )
+        if len(selected_areas) <= 2 and len(selected_areas) > 0:
+            elderly_counts = [
+                aging_data[year][
+                    f"ElderlyCounts{selected_distinction.capitalize()}"
+                ].get(area, 0)
+                for year in years
             ]
-            if len(selected_areas) == 1:
-                elderly_counts = [
-                    aging_data[year][
-                        f"ElderlyCounts{selected_distinction.capitalize()}"
-                    ].get(area, 0)
-                    for year in years
-                ]
-                fig.add_trace(
-                    go.Bar(
-                        x=years,
-                        y=elderly_counts,
-                        name=f"{area} 高齢者総数",
-                        yaxis="y2",
-                        marker=dict(opacity=0.6),
-                    )
-                )
             fig.add_trace(
-                go.Scatter(x=years, y=aging_rates, mode="lines+markers", name=area)
+                go.Bar(
+                    x=years,
+                    y=elderly_counts,
+                    name=f"{area} 高齢者総数",
+                    yaxis="y2",
+                    marker=dict(color=color, opacity=0.3),
+                )
             )
 
-    if "average" in selected_areas or not selected_areas:
+    if show_overall_aging_rate == ["show"]:
         average_aging_rates_school_zone_list = [
             100 * aging_data[year]["AverageAgingRateSchoolZone"] for year in years
         ]
+        color = custom_colors[-1]
         fig.add_trace(
             go.Scatter(
                 x=years,
                 y=average_aging_rates_school_zone_list,
                 mode="lines+markers",
                 name="全体の平均",
+                line=dict(color=color),
             )
         )
         if len(selected_areas) == 1:
@@ -446,10 +464,24 @@ def update_graph(selected_distinction, selected_areas):
                     y=elderly_counts,
                     name="高齢者総数(人)",
                     yaxis="y2",
-                    marker=dict(opacity=0.6),
+                    marker=dict(color=color, opacity=0.3),
                 )
             )
 
+    fig.update_layout(
+        title=dict(text="高齢化率の年次推移", font=dict(size=24)),
+        xaxis=dict(title="年度", title_font=dict(size=20)),
+        yaxis=dict(title="高齢化率(%)", title_font=dict(size=20)),
+        yaxis2=dict(
+            title="高齢者総数",
+            title_font=dict(size=20),
+            overlaying="y",
+            side="right",
+            tickformat=",",
+        ),
+        hovermode="closest",
+        showlegend=True,
+    )
     return fig
 
 
@@ -476,8 +508,6 @@ def update_display_area_options(selected_distinction):
             for school_zone in sorted_school_zones
         ]
 
-    options.append({"label": "全体の平均", "value": "average"})
-
     return options
 
 
@@ -498,10 +528,11 @@ def update_display_area_options(selected_distinction):
         State("display-area-dropdown", "value"),
         State("aging-file-name-input", "value"),
         State("aging-zoom-range-store", "children"),
+        State("overall_compare-aging-rate-checklist", "value"),
     ],
 )
 def toggle_modal(
-    n_open, n_cancel, n_download, is_open, distinction, areas, file_name, zoom_range
+    n_open, n_cancel, n_download, is_open, distinction, areas, file_name, zoom_range, show_overall_aging_rate
 ):
     ctx = dash.callback_context
 
@@ -521,6 +552,8 @@ def toggle_modal(
         file_name = "aging_rate.csv(※ファイル名未入力時)"
     else:
         file_name = f"{file_name}.csv"
+    if show_overall_aging_rate == ["show"]:
+        areas.append("全体の平均")
     areas_text = ", ".join(areas) if areas else "すべての区"
     if zoom_range:
         start_year = math.ceil(zoom_range[0])
@@ -558,10 +591,11 @@ def toggle_modal(
         State("display-area-dropdown", "value"),
         State("aging-file-name-input", "value"),
         State("aging-zoom-range-store", "children"),
+        State("overall_compare-aging-rate-checklist", "value"),
     ],
     prevent_initial_call=True,
 )
-def download_file(n_clicks, distinction, areas, file_name, zoom_range):
+def download_file(n_clicks, distinction, areas, file_name, zoom_range, show_overall_aging_rate):
     ctx = dash.callback_context
 
     if not ctx.triggered:
@@ -571,9 +605,14 @@ def download_file(n_clicks, distinction, areas, file_name, zoom_range):
     if button_id == "aging-download-confirm-button":
         filepath = "/usr/src/data/save/20240124aging_rate.csv"
         df = pd.read_csv(filepath)
-        df_filtered = filter_df_by_distinction(df, distinction)
+        df_filtered = filter_df_by_distinction(df, distinction,show_overall_aging_rate)
+        print(df_filtered)
         if areas:
+            if show_overall_aging_rate == ["show"]:
+                areas.append("全体の平均")
+                print(areas)
             df_filtered = df_filtered[df_filtered["区名"].isin(areas)]
+            print(df_filtered)
         if zoom_range:
             df_filtered = df_filtered[
                 (df_filtered["年度"] >= float(zoom_range[0]))
@@ -581,7 +620,10 @@ def download_file(n_clicks, distinction, areas, file_name, zoom_range):
             ]
         if file_name is None or file_name == "":
             file_name = "aging_rate"
-        return dcc.send_data_frame(df_filtered.to_csv, f"{file_name}.csv", index=False)
+        print(df_filtered)
+        df_filtered = df_filtered.to_csv(index=False)
+        b64 = base64.b64encode(df_filtered.encode("CP932")).decode("CP932")
+        return dict(content=b64, filename=f"{file_name}.csv", base64=True)
 
 
 @callback(
@@ -625,14 +667,16 @@ def update_zoom_range_store(relayoutData, distinction, areas):
     return no_update
 
 
-def filter_df_by_distinction(df, distinction):
+def filter_df_by_distinction(df, distinction,show_overall_aging_rate):
     if distinction == "district" or distinction is None:
-        filter_condition = "行政区"
+        filter_condition = ["行政区"]
     elif distinction == "schoolzone":
-        filter_condition = "小学校区"
+        filter_condition = ["小学校区"]
     else:
         raise ValueError("Invalid distinction value")
-
-    filtered_df = df[df["区別種類"] == filter_condition]
+    if show_overall_aging_rate == ["show"]:
+        filter_condition.append("全体")
+    filtered_df = df[df["区別種類"].isin(filter_condition)]
     filtered_df = filtered_df.drop(columns=["区別種類"])
+        
     return filtered_df
