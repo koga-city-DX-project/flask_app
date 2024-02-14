@@ -3,7 +3,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash import Input, Output, callback, dcc, html
 
-df_path = "/usr/src/data/save/Cause_Death_test.csv"
+df_path = "/usr/src/data/save/CauseDeath.csv"
 
 
 def ensure_list(value, default_value):
@@ -48,6 +48,8 @@ def legend_name(ages, age, sexes, sex, categories, category, areas, area):
     if len(ages) > 1 or (len(ages) == 1 and age != "総数(人)"):
         parts.append(age)
     legend_name = " ".join(parts)
+    if legend_name == "":
+        legend_name = f"{area}全体"
     return legend_name
 
 
@@ -155,6 +157,15 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="cause-death-age-dropdown",
                             options=[
+                                {"label": "10代", "value": "10代"},
+                                {"label": "20代", "value": "20代"},
+                                {"label": "30代", "value": "30代"},
+                                {"label": "40代", "value": "40代"},
+                                {"label": "50代", "value": "50代"},
+                                {"label": "60代", "value": "60代"},
+                                {"label": "70代", "value": "70代"},
+                                {"label": "80代", "value": "80代"},
+                                {"label": "90代", "value": "90代"},
                                 {"label": "0歳～4歳", "value": "0歳～4歳"},
                                 {"label": "5歳～9歳", "value": "5歳～9歳"},
                                 {"label": "10歳～14歳", "value": "10歳～14歳"},
@@ -214,7 +225,7 @@ settings = html.Div(
                                 {"label": "国", "value": "国"},
                             ],
                             value=["古賀市"],
-                            placeholder="すべての地域を表示",
+                            placeholder="古賀市のみを表示",
                             multi=True,
                             className="setting_dropdown",
                         ),
@@ -294,6 +305,7 @@ layout = html.Div(
 )
 def update_cause_death_graph(comparison_type, ages, sexes, categories, areas):
     df = pd.read_csv(df_path)
+    shown_legends = set()
     ages = ensure_list(ages, "総数(人)")
     sexes = ensure_list(sexes, "男女計")
     areas = ensure_list(areas, "古賀市")
@@ -304,6 +316,7 @@ def update_cause_death_graph(comparison_type, ages, sexes, categories, areas):
     df_filtered = df[
         df["地域"].isin(areas) & df["分類"].isin(categories) & df["性別"].isin(sexes)
     ]
+
     fig = go.Figure()
     for area in areas:
         symbol = symbols[area]
@@ -339,8 +352,78 @@ def update_cause_death_graph(comparison_type, ages, sexes, categories, areas):
                             marker=dict(symbol=symbol, size=12),
                         )
                     )
+    if (
+        comparison_type == "people"
+        and (len(ages) + len(sexes) + len(areas)) <= 3
+        and categories == ["総数"]
+    ):
+        excluded_categories = [
+            "ウイルス性肝炎",
+            "悪性新生物",
+            "心疾患",
+            "総数",
+            "脳血管疾患",
+            "不慮の事故",
+            "自殺",
+        ]
+
+        for year in df["年度"].unique():
+            df_year = df[df["年度"] == year]
+            for area in areas:
+                df_area = df_year[df_year["地域"] == area]
+                for sex in sexes:
+                    df_sex = df_area[df_area["性別"] == sex]
+                    for age in ages:
+                        df_filtered = df_sex.groupby(["分類"])[age].sum().reset_index()
+                        df_summary = df_filtered[
+                            ~df_filtered["分類"].isin(excluded_categories)
+                            & (df_filtered[age] > 0)
+                        ]
+                        total_deaths = df_sex[df_sex["分類"] == "総数"][age].sum()
+
+                        top_categories = df_summary.sort_values(
+                            by=age, ascending=False
+                        ).head(5)
+                        top_categories_sorted = top_categories[
+                            top_categories[age] > 0
+                        ].sort_values(by=age, ascending=True)
+                        top_sum = top_categories[age].sum()
+
+                        other_sum = total_deaths - top_sum
+                        if other_sum > 0:
+                            fig.add_trace(
+                                go.Bar(
+                                    x=[year],
+                                    y=[other_sum],
+                                    name="その他",
+                                    marker=dict(color="grey"),
+                                    opacity=0.7,
+                                    showlegend="その他" not in shown_legends,
+                                )
+                            )
+                            shown_legends.add("その他")
+
+                        for _, row in top_categories_sorted.iterrows():
+                            category = row["分類"]
+                            showlegend = category not in shown_legends
+                            shown_legends.add(category)
+                            fig.add_trace(
+                                go.Bar(
+                                    x=[year],
+                                    y=[row[age]],
+                                    name=category,
+                                    marker=dict(
+                                        color=category_color_mapping.get(
+                                            category, "grey"
+                                        )
+                                    ),
+                                    opacity=0.7,
+                                    showlegend=showlegend,
+                                )
+                            )
 
     fig.update_layout(
+        barmode="stack",
         title="死因別死亡者数の推移",
         title_font_size=24,
         xaxis=dict(title="年度", title_font=dict(size=20)),
@@ -349,6 +432,79 @@ def update_cause_death_graph(comparison_type, ages, sexes, categories, areas):
             x=1.05,
             y=1,
         ),
+        hovermode="x unified",
     )
 
     return fig
+
+
+category_color_mapping = {
+    "腸管感染症": "#1f77b4",
+    "結核": "#aec7e8",
+    "敗血病": "#ff7f0e",
+    "Ｂ型ウイルス性肝炎": "#ffbb78",
+    "Ｃ型ウイルス性肝炎": "#2ca02c",
+    "ヒト免疫不全ウイルス病": "#98df8a",
+    "口唇，口腔及び咽頭の悪性新生": "#d62728",
+    "食道の悪性新生物": "#ff9896",
+    "胃の悪性新生物": "#8820e6",
+    "結腸の悪性新生物": "#a683d4",
+    "直腸Ｓ状結腸移行部及び直腸の悪性新生物": "#8c564b",
+    "肝及び肝内胆管の悪性新生物": "#c49c94",
+    "胆のう及びその他の胆道の悪性新生物": "#eb6e21",
+    "膵の悪性新生物": "#f7b6d2",
+    "喉頭の悪性新生物": "#7f7f7f",
+    "気管，気管支及び肺の悪性新生物": "green",
+    "皮膚の悪性新生物": "#bcbd22",
+    "乳房の悪性新生物": "#dbdb8d",
+    "子宮の悪性新生物": "#17becf",
+    "卵巣の悪性新生物": "#9edae5",
+    "前立腺の悪性新生物": "#393b79",
+    "膀胱の悪性新生物": "#5254a3",
+    "中枢神経系の悪性新生物": "#5c61ff",
+    "悪性リンパ腫": "#9c9ede",
+    "白血病": "#637939",
+    "貧血": "#8ca252",
+    "糖尿病": "#b5cf6b",
+    "血管性及び詳細不明の認知症": "#cedb9c",
+    "髄膜炎": "#8c6d31",
+    "脊椎性筋縮症及び関連症候群": "#bd9e39",
+    "パーキンソン病": "#e7ba52",
+    "アルツハイマー病": "#e7cb94",
+    "高血圧性疾患": "#843c39",
+    "慢性リウマチ性心疾患": "#ad494a",
+    "急性心筋梗塞": "#d6616b",
+    "慢性非リウマチ性心内膜疾患": "#e7969c",
+    "心筋症": "#7b4173",
+    "不整脈及び伝導障害": "#a55194",
+    "心不全": "#8c6d31",
+    "脳血管疾患": "#de9ed6",
+    "くも膜下出血": "#3182bd",
+    "脳内出血": "#6baed6",
+    "脳梗塞": "#9ecae1",
+    "大動脈癌及び解離": "blue",
+    "インフルエンザ": "#e6550d",
+    "肺炎": "#fd8d3c",
+    "急性気管支炎": "#fdae6b",
+    "慢性閉塞性肺疾患": "#fdd0a2",
+    "喘息": "#31a354",
+    "胃潰瘍及び十二指腸潰瘍": "#74c476",
+    "ヘルニア及び腸閉塞": "#a1d99b",
+    "肝疾患": "#c7e9c0",
+    "糸球体疾患及び腎尿細管間質性疾患": "#756bb1",
+    "腎不全": "#9e9ac8",
+    "妊娠期間及び胎児発育に関連する障害": "#bcbddc",
+    "周産期に特異的な呼吸障害及び心血管障害": "#dadaeb",
+    "周産期に特異的な感染症": "#636363",
+    "胎児及び新生児の出血性障害及び血液障害": "#969696",
+    "神経系の先天奇形": "#bdbdbd",
+    "循環器系の先天奇形": "#d9d9d9",
+    "消化器系の先天奇形": "#f7f7f7",
+    "老衰": "#ff0000",  # 明るく鮮やかな赤色で老衰を強調
+    "乳幼児突然死症候群": "#00ff00",  # 明るい緑色
+    "不慮の事故": "#0000ff",  # 明るい青色
+    "交通事故": "#00ffff",  # シアン
+    "転倒・転落・墜落": "#ff00ff",  # マゼンタ
+    "不慮の溺死及び溺水": "#ffff00",  # イエロー
+    "自殺": "#7d0000",  # コーラル
+}
