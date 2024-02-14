@@ -28,22 +28,22 @@ contents = html.Div(
                     id="aging_rate-graph",
                     style={"height": "80vh"},
                     config={
-                                "displayModeBar": True,
-                                "displaylogo": False,
-                                "modeBarButtonsToAdd": [
-                                    "pan2d",
-                                    "autoScale2d",
-                                ],
-                                "modeBarButtonsToRemove": [
-                                    "zoomIn2d",
-                                    "zoomOut2d",
-                                    "select2d",
-                                    "lasso2d",
-                                    "toggleSpikelines",
-                                    "hoverClosestCartesian",
-                                    "hoverCompareCartesian",
-                                ],
-                            },
+                        "displayModeBar": True,
+                        "displaylogo": False,
+                        "modeBarButtonsToAdd": [
+                            "pan2d",
+                            "autoScale2d",
+                        ],
+                        "modeBarButtonsToRemove": [
+                            "zoomIn2d",
+                            "zoomOut2d",
+                            "select2d",
+                            "lasso2d",
+                            "toggleSpikelines",
+                            "hoverClosestCartesian",
+                            "hoverCompareCartesian",
+                        ],
+                    },
                 )
             ],
         ),
@@ -81,8 +81,8 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="population-comparison-type-dropdown",
                             options=[
-                                {"label": "人数", "value": "people"},
-                                {"label": "割合", "value": "rate"},
+                                {"label": "全体の人数", "value": "people"},
+                                {"label": "選択した年代の割合", "value": "rate"},
                             ],
                             value="people",
                             className="setting_dropdown",
@@ -116,10 +116,10 @@ settings = html.Div(
                                 {"label": "65歳～", "value": "65-"},
                                 {"label": "総数", "value": "all"},
                             ],
-                            value=["all"],
+                            value=[],
                             multi=True,
                             className="setting_dropdown",
-                            placeholder="全年代の合計人数を表示",
+                            placeholder="全年代を表示",
                         ),
                         html.P("性別", className="font-weight-bold option_P"),
                         dcc.Dropdown(
@@ -129,10 +129,10 @@ settings = html.Div(
                                 {"label": "女性", "value": "女性"},
                                 {"label": "男女計", "value": "男女計"},
                             ],
-                            value=["男女計"],
+                            value=[],
                             multi=True,
                             className="setting_dropdown",
-                            placeholder="男女合計人数を表示",
+                            placeholder="男女合計数を表示",
                         ),
                         html.P("比較地域", className="font-weight-bold option_P"),
                         dcc.Dropdown(
@@ -306,7 +306,9 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
                 )
 
             if aging_rate_visibility == ["show"]:
-                df_area = df_filtered[(df_filtered["地域"] == area) & (df_filtered["性別"] == sex)]
+                df_area = df_filtered[
+                    (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
+                ]
                 fig.add_trace(
                     go.Scatter(
                         x=df_area["年度"],
@@ -334,9 +336,9 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
             tickformat=".2%",
         ),
         legend=dict(
-        x=1.05,
-        y=1,
-    )
+            x=1.05,
+            y=1,
+        ),
     )
 
     return fig
