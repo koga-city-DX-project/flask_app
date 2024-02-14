@@ -62,22 +62,22 @@ contents = html.Div(
                     id="care-level-graph",
                     style={"height": "80vh"},
                     config={
-                                "displayModeBar": True,
-                                "displaylogo": False,
-                                "modeBarButtonsToAdd": [
-                                    "pan2d",
-                                    "autoScale2d",
-                                ],
-                                "modeBarButtonsToRemove": [
-                                    "zoomIn2d",
-                                    "zoomOut2d",
-                                    "select2d",
-                                    "lasso2d",
-                                    "toggleSpikelines",
-                                    "hoverClosestCartesian",
-                                    "hoverCompareCartesian",
-                                ],
-                            },
+                        "displayModeBar": True,
+                        "displaylogo": False,
+                        "modeBarButtonsToAdd": [
+                            "pan2d",
+                            "autoScale2d",
+                        ],
+                        "modeBarButtonsToRemove": [
+                            "zoomIn2d",
+                            "zoomOut2d",
+                            "select2d",
+                            "lasso2d",
+                            "toggleSpikelines",
+                            "hoverClosestCartesian",
+                            "hoverCompareCartesian",
+                        ],
+                    },
                 )
             ],
         ),
@@ -192,6 +192,7 @@ def process_data(data_directory, file_pattern):
             df = df[df["認定状態"] == "認定済み"]
             df["年齢"] = year - df["生年月日_year"] + 1
             elderly_data = df[df["年齢"] >= 65]
+            elderly_data = elderly_data[elderly_data["二次判定要介護度名"] != "非該当"]
             elderly_data = elderly_data[
                 [
                     "要介護認定申請日",
@@ -203,7 +204,9 @@ def process_data(data_directory, file_pattern):
             ]
             elderly_data["Year"] = year
             counts_by_care_level = (
-                elderly_data.groupby("二次判定要介護度名").size().reset_index(name="合計")
+                elderly_data.groupby("二次判定要介護度名")
+                .size()
+                .reset_index(name="合計")
             )
             counts_by_care_level["Year"] = year
             total_by_year = counts_by_care_level["合計"].sum()
@@ -281,9 +284,7 @@ def update_graph(selected_care_levels, selected_graph_type):
                     y=level_df["割合"],
                     mode="lines",
                     name=care_level,
-                    line=dict(
-                        color=color_map.get(care_level, "black")
-                    ),
+                    line=dict(color=color_map.get(care_level, "black")),
                 )
             )
     elif selected_graph_type == "stacked_bar":
