@@ -42,7 +42,7 @@ column_types = {
 
 def load_and_process_files():
     global all_data_rate
-    files = glob.glob("/usr/src/data/*/認定状態・総人口20**.csv")
+    files = glob.glob("/usr/src/data/save/認定状態・総人口20**.csv")
     all_data = []
     for file in files:
         year = file[-8:-4]  # ファイル名から年を抽出
@@ -63,9 +63,9 @@ def load_and_process_files():
         df = df[columns_to_keep]
         df["年"] = year
         df["年"] = df["年"].astype(int)
-        df["生年月日_year"] = pd.to_numeric(df["生年月日_year"], errors="coerce").astype(
-            "Int64"
-        )
+        df["生年月日_year"] = pd.to_numeric(
+            df["生年月日_year"], errors="coerce"
+        ).astype("Int64")
         df["行政区"] = df["自治会コード名"].str.extract("(.*区)")
         df["小学校区"] = df["小学校区コード名"].str.extract("(.*小)")
         df["年齢"] = df["年"].astype(int) - df["生年月日_year"]
@@ -81,14 +81,18 @@ def load_and_process_files():
 
         # 行政区ごとの集計
         district_data_count = df.groupby("行政区").size()
-        district_certified_count = df[df["認定状態"] == "認定済み"].groupby("行政区").size()
+        district_certified_count = (
+            df[df["認定状態"] == "認定済み"].groupby("行政区").size()
+        )
         district_elderly_count = late_elderly_data.groupby("行政区").size()
         district_certified_rate = district_certified_count / district_data_count
         district_elderly_rate = district_elderly_count / district_data_count
 
         # 小学校区ごとの集計
         school_data_count = df.groupby("小学校区").size()
-        school_certified_count = df[df["認定状態"] == "認定済み"].groupby("小学校区").size()
+        school_certified_count = (
+            df[df["認定状態"] == "認定済み"].groupby("小学校区").size()
+        )
         school_elderly_count = late_elderly_data.groupby("小学校区").size()
         school_certified_rate = school_certified_count / school_data_count
         school_elderly_rate = school_elderly_count / school_data_count
@@ -118,7 +122,8 @@ data = load_and_process_files()
 def district_option_set():
     data["自治会コード_str"] = data["自治会コード"].astype(str)
     district_to_code = {
-        district: code[:2] for district, code in zip(data["行政区"], data["自治会コード_str"])
+        district: code[:2]
+        for district, code in zip(data["行政区"], data["自治会コード_str"])
     }
     sorted_districts = sorted(
         data["行政区"].unique(), key=lambda x: district_to_code.get(x, "")
@@ -130,7 +135,8 @@ def district_option_set():
 def school_option_set():
     data["小学校区コード_str"] = data["小学校区コード"].astype(str)
     district_to_code = {
-        district: code[:2] for district, code in zip(data["小学校区"], data["小学校区コード_str"])
+        district: code[:2]
+        for district, code in zip(data["小学校区"], data["小学校区コード_str"])
     }
     sorted_districts = sorted(
         data["小学校区"].unique(), key=lambda x: district_to_code.get(x, "")
@@ -205,22 +211,22 @@ contents = html.Div(
                     id="certification_rate_graph",
                     style={"height": "80vh"},
                     config={
-                                "displayModeBar": True,
-                                "displaylogo": False,
-                                "modeBarButtonsToAdd": [
-                                    "pan2d",
-                                    "autoScale2d",
-                                ],
-                                "modeBarButtonsToRemove": [
-                                    "zoomIn2d",
-                                    "zoomOut2d",
-                                    "select2d",
-                                    "lasso2d",
-                                    "toggleSpikelines",
-                                    "hoverClosestCartesian",
-                                    "hoverCompareCartesian",
-                                ],
-                            },
+                        "displayModeBar": True,
+                        "displaylogo": False,
+                        "modeBarButtonsToAdd": [
+                            "pan2d",
+                            "autoScale2d",
+                        ],
+                        "modeBarButtonsToRemove": [
+                            "zoomIn2d",
+                            "zoomOut2d",
+                            "select2d",
+                            "lasso2d",
+                            "toggleSpikelines",
+                            "hoverClosestCartesian",
+                            "hoverCompareCartesian",
+                        ],
+                    },
                 ),
             ]
         ),
