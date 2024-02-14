@@ -204,6 +204,23 @@ contents = html.Div(
                 dcc.Graph(
                     id="certification_rate_graph",
                     style={"height": "80vh"},
+                    config={
+                                "displayModeBar": True,
+                                "displaylogo": False,
+                                "modeBarButtonsToAdd": [
+                                    "pan2d",
+                                    "autoScale2d",
+                                ],
+                                "modeBarButtonsToRemove": [
+                                    "zoomIn2d",
+                                    "zoomOut2d",
+                                    "select2d",
+                                    "lasso2d",
+                                    "toggleSpikelines",
+                                    "hoverClosestCartesian",
+                                    "hoverCompareCartesian",
+                                ],
+                            },
                 ),
             ]
         ),
@@ -297,6 +314,7 @@ settings = html.Div(
                         dcc.Checklist(
                             id="overall_compare",
                             options=[{"label": "全体と比較する", "value": "c1"}],
+                            className="option_P",
                         ),
                         dbc.Button(
                             href="#",

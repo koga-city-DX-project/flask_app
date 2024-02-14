@@ -27,6 +27,23 @@ contents = html.Div(
                 dcc.Graph(
                     id="aging_rate-graph",
                     style={"height": "80vh"},
+                    config={
+                        "displayModeBar": True,
+                        "displaylogo": False,
+                        "modeBarButtonsToAdd": [
+                            "pan2d",
+                            "autoScale2d",
+                        ],
+                        "modeBarButtonsToRemove": [
+                            "zoomIn2d",
+                            "zoomOut2d",
+                            "select2d",
+                            "lasso2d",
+                            "toggleSpikelines",
+                            "hoverClosestCartesian",
+                            "hoverCompareCartesian",
+                        ],
+                    },
                 )
             ],
         ),
@@ -64,8 +81,8 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="population-comparison-type-dropdown",
                             options=[
-                                {"label": "人数", "value": "people"},
-                                {"label": "割合", "value": "rate"},
+                                {"label": "全体の人数", "value": "people"},
+                                {"label": "選択した年代の割合", "value": "rate"},
                             ],
                             value="people",
                             className="setting_dropdown",
@@ -99,10 +116,10 @@ settings = html.Div(
                                 {"label": "65歳～", "value": "65-"},
                                 {"label": "総数", "value": "all"},
                             ],
-                            value=["all"],
+                            value=[],
                             multi=True,
                             className="setting_dropdown",
-                            placeholder="全年代の合計人数を表示",
+                            placeholder="全年代を表示",
                         ),
                         html.P("性別", className="font-weight-bold option_P"),
                         dcc.Dropdown(
@@ -112,10 +129,10 @@ settings = html.Div(
                                 {"label": "女性", "value": "女性"},
                                 {"label": "男女計", "value": "男女計"},
                             ],
-                            value=["男女計"],
+                            value=[],
                             multi=True,
                             className="setting_dropdown",
-                            placeholder="男女合計人数を表示",
+                            placeholder="男女合計数を表示",
                         ),
                         html.P("比較地域", className="font-weight-bold option_P"),
                         dcc.Dropdown(
@@ -130,15 +147,10 @@ settings = html.Div(
                             multi=True,
                             className="setting_dropdown",
                         ),
-                        html.P("高齢化率", className="font-weight-bold option_P"),
-                        dcc.Dropdown(
-                            id="population-aging-rate-dropdown",
-                            options=[
-                                {"label": "表示", "value": "show"},
-                                {"label": "非表示", "value": "hidden"},
-                            ],
-                            value="hidden",
-                            className="setting_dropdown",
+                        dcc.Checklist(
+                            id="population-aging-rate-checklist",
+                            options=[{"label": "高齢者率を表示", "value": "show"}],
+                            className="setting_dropdown option_P",
                         ),
                         dbc.Input(
                             id="population-file-name-input",
@@ -210,58 +222,13 @@ layout = html.Div(
 )
 
 
-def adjust_hue(hex_color, hue_factor):
-    """指定されたHEXカラーの色相を調整します。"""
-    hex_color = hex_color.lstrip("#")
-    r, g, b = tuple(int(hex_color[i : i + 2], 16) for i in (0, 2, 4))
-
-    # RGBをHSVに変換し、色相（H）を調整
-    h, s, v = colorsys.rgb_to_hsv(r / 255.0, g / 255.0, b / 255.0)
-    h = (h + hue_factor) % 1
-    r, g, b = colorsys.hsv_to_rgb(h, s, v)
-
-    # RGBをHEXに戻す
-    return "#{:02x}{:02x}{:02x}".format(int(r * 255), int(g * 255), int(b * 255))
-
-
-# 性別と年齢層に基づく色の調整
-def get_sex_age_color(base_color, sex, age):
-    hue_factor = 0.1 if sex == "男性" else 0.2 if sex == "女性" else 0
-    age_factor = {
-        "0-4": 0.05,
-        "5-9": 0.1,
-        "10-14": 0.15,
-        "all": 0,
-        "65-": 0.2,
-        "15-19": 0.05,
-        "20-24": 0.1,
-        "25-29": 0.15,
-        "30-34": 0.2,
-        "35-39": 0.05,
-        "40-44": 0.1,
-        "45-49": 0.15,
-        "50-54": 0.2,
-        "55-59": 0,
-        "60-64": 0.05,
-        "65-69": 0.1,
-        "70-74": 0.15,
-        "75-79": 0.2,
-        "80-84": 0.0,
-        "85-89": 0.05,
-        "90-94": 0.1,
-        "95-99": 0.15,
-        "100-": 0.2,
-    }.get(age, 0)
-    return adjust_hue(base_color, hue_factor + age_factor)
-
-
 @callback(
     Output("aging_rate-graph", "figure"),
     [
         Input("population-age-dropdown", "value"),
         Input("population-sex-type-dropdown", "value"),
         Input("population-area-dropdown", "value"),
-        Input("population-aging-rate-dropdown", "value"),
+        Input("population-aging-rate-checklist", "value"),
         Input("population-comparison-type-dropdown", "value"),
     ],
 )
@@ -292,8 +259,9 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
         "all": "総数",
         "65-": "65歳以上",
     }
-    area_line_styles = {"古賀市": "solid", "福岡県": "dot", "国": "dash"}
-    colors = {"古賀市": "#1e00ff", "福岡県": "#ff0000", "国": "#1b941b"}
+    widths = {"古賀市": 1, "福岡県": 2, "国": 3}
+    symbols = {"古賀市": "circle", "福岡県": "square", "国": "diamond"}
+    line_styles = {"男性": "solid", "女性": "dot", "男女計": "solid"}
     if not ages:
         ages = ["all"]
     if not sexes:
@@ -312,47 +280,52 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
 
     fig = go.Figure()
     for area in areas:
-        line_style = area_line_styles[area]
+        symbol = symbols[area]
         for sex in sexes:
+            line_style = line_styles[sex]
             for age in ages:
-                color = get_sex_age_color(colors[area], sex, age)
+                line_width = widths[area]
                 df_area_sex_age = df_filtered[
                     (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
                 ]
                 if comparison_type == "rate":
                     y_data = df_area_sex_age[age_columns[age]] / df_area_sex_age["総数"]
+                    y_title = "割合"
                 else:
                     y_data = df_area_sex_age[age_columns[age]]
+                    y_title = "人数"
                 fig.add_trace(
                     go.Scatter(
                         x=df_area_sex_age["年度"],
                         y=y_data,
                         mode="lines+markers",
                         name=f"{area} {sex} {age_columns[age]}",
-                        line=dict(color=color, width=2, dash=line_style),
-                        marker=dict(symbol="circle", size=8),
+                        line=dict(width=line_width, dash=line_style),
+                        marker=dict(symbol=symbol, size=12),
                     )
                 )
 
-        if aging_rate_visibility == "show":
-            df_area = df_filtered[df_filtered["地域"] == area]
-            fig.add_trace(
-                go.Scatter(
-                    x=df_area["年度"],
-                    y=df_area["高齢化率"],
-                    mode="lines",
-                    name=f"{area} 高齢化率",
-                    yaxis="y2",
-                    line=dict(color=colors[area], width=3, dash="solid"),
-                    showlegend=True,
+            if aging_rate_visibility == ["show"]:
+                df_area = df_filtered[
+                    (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
+                ]
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_area["年度"],
+                        y=df_area["高齢化率"],
+                        mode="lines",
+                        name=f"{area} 高齢化率({sex})",
+                        yaxis="y2",
+                        line=dict(width=2.5, dash="solid"),
+                        showlegend=True,
+                    )
                 )
-            )
 
     fig.update_layout(
         title="人口分布の推移",
         title_font_size=24,
         xaxis=dict(title="年度", title_font=dict(size=20)),
-        yaxis=dict(title="人数", title_font=dict(size=20)),
+        yaxis=dict(title=y_title, title_font=dict(size=20)),
         yaxis2=dict(
             title="高齢化率",
             title_font=dict(size=20),
@@ -360,9 +333,12 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
             side="right",
             showgrid=False,
             range=[0, 1],
-            tickformat=".0%",
+            tickformat=".2%",
         ),
-        legend_title="地域",
+        legend=dict(
+            x=1.05,
+            y=1,
+        ),
     )
 
     return fig
