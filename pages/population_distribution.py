@@ -6,7 +6,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from dash import Input, Output, State, callback, dcc, html
 
-df_path = "/usr/src/data/save/人口分布(国・福岡県・古賀市)test.csv"
+df_path = "/usr/src/data/save/人口分布(国・福岡県・古賀市).csv"
 contents = html.Div(
     [
         dbc.Row(
@@ -81,8 +81,8 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="population-comparison-type-dropdown",
                             options=[
-                                {"label": "全体の人数", "value": "people"},
-                                {"label": "選択した年代の割合", "value": "rate"},
+                                {"label": "人数", "value": "people"},
+                                {"label": "年代別割合", "value": "rate"},
                             ],
                             value="people",
                             className="setting_dropdown",
@@ -92,29 +92,38 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="population-age-dropdown",
                             options=[
-                                {"label": "0歳～4歳", "value": "0-4"},
-                                {"label": "5歳～9歳", "value": "5-9"},
-                                {"label": "10歳～14歳", "value": "10-14"},
-                                {"label": "15歳～19歳", "value": "15-19"},
-                                {"label": "20歳～24歳", "value": "20-24"},
-                                {"label": "25歳～29歳", "value": "25-29"},
-                                {"label": "30歳～34歳", "value": "30-34"},
-                                {"label": "35歳～39歳", "value": "35-39"},
-                                {"label": "40歳～44歳", "value": "40-44"},
-                                {"label": "45歳～49歳", "value": "45-49"},
-                                {"label": "50歳～54歳", "value": "50-54"},
-                                {"label": "55歳～59歳", "value": "55-59"},
-                                {"label": "60歳～64歳", "value": "60-64"},
-                                {"label": "65歳～69歳", "value": "65-69"},
-                                {"label": "70歳～74歳", "value": "70-74"},
-                                {"label": "75歳～79歳", "value": "75-79"},
-                                {"label": "80歳～84歳", "value": "80-84"},
-                                {"label": "85歳～89歳", "value": "85-89"},
-                                {"label": "90歳～94歳", "value": "90-94"},
-                                {"label": "95歳～99歳", "value": "95-99"},
-                                {"label": "100歳～", "value": "100-"},
-                                {"label": "65歳～", "value": "65-"},
-                                {"label": "総数", "value": "all"},
+                                {"label": "10代", "value": "10代"},
+                                {"label": "20代", "value": "20代"},
+                                {"label": "30代", "value": "30代"},
+                                {"label": "40代", "value": "40代"},
+                                {"label": "50代", "value": "50代"},
+                                {"label": "60代", "value": "60代"},
+                                {"label": "70代", "value": "70代"},
+                                {"label": "80代", "value": "80代"},
+                                {"label": "90代", "value": "90代"},
+                                {"label": "0歳～4歳", "value": "0歳～4歳"},
+                                {"label": "5歳～9歳", "value": "5歳～9歳"},
+                                {"label": "10歳～14歳", "value": "10歳～14歳"},
+                                {"label": "15歳～19歳", "value": "15歳～19歳"},
+                                {"label": "20歳～24歳", "value": "20歳～24歳"},
+                                {"label": "25歳～29歳", "value": "25歳～29歳"},
+                                {"label": "30歳～34歳", "value": "30歳～34歳"},
+                                {"label": "35歳～39歳", "value": "35歳～39歳"},
+                                {"label": "40歳～44歳", "value": "40歳～44歳"},
+                                {"label": "45歳～49歳", "value": "45歳～49歳"},
+                                {"label": "50歳～54歳", "value": "50歳～54歳"},
+                                {"label": "55歳～59歳", "value": "55歳～59歳"},
+                                {"label": "60歳～64歳", "value": "60歳～64歳"},
+                                {"label": "65歳～69歳", "value": "65歳～69歳"},
+                                {"label": "70歳～74歳", "value": "70歳～74歳"},
+                                {"label": "75歳～79歳", "value": "75歳～79歳"},
+                                {"label": "80歳～84歳", "value": "80歳～84歳"},
+                                {"label": "85歳～89歳", "value": "85歳～89歳"},
+                                {"label": "90歳～94歳", "value": "90歳～94歳"},
+                                {"label": "95歳～99歳", "value": "95歳～99歳"},
+                                {"label": "100歳～", "value": "100歳以上"},
+                                {"label": "65歳～", "value": "65歳以上"},
+                                {"label": "総数", "value": "総数"},
                             ],
                             value=[],
                             multi=True,
@@ -234,36 +243,11 @@ layout = html.Div(
 )
 def update_population_graph(ages, sexes, areas, aging_rate_visibility, comparison_type):
     df = pd.read_csv(df_path)
-    age_columns = {
-        "0-4": "0歳～4歳",
-        "5-9": "5歳～9歳",
-        "10-14": "10歳～14歳",
-        "15-19": "15歳～19歳",
-        "20-24": "20歳～24歳",
-        "25-29": "25歳～29歳",
-        "30-34": "30歳～34歳",
-        "35-39": "35歳～39歳",
-        "40-44": "40歳～44歳",
-        "45-49": "45歳～49歳",
-        "50-54": "50歳～54歳",
-        "55-59": "55歳～59歳",
-        "60-64": "60歳～64歳",
-        "65-69": "65歳～69歳",
-        "70-74": "70歳～74歳",
-        "75-79": "75歳～79歳",
-        "80-84": "80歳～84歳",
-        "85-89": "85歳～89歳",
-        "90-94": "90歳～94歳",
-        "95-99": "95歳～99歳",
-        "100-": "100歳以上",
-        "all": "総数",
-        "65-": "65歳以上",
-    }
     widths = {"古賀市": 1, "福岡県": 2, "国": 3}
     symbols = {"古賀市": "circle", "福岡県": "square", "国": "diamond"}
     line_styles = {"男性": "solid", "女性": "dot", "男女計": "solid"}
     if not ages:
-        ages = ["all"]
+        ages = ["総数"]
     if not sexes:
         sexes = ["男女計"]
     if not areas:
@@ -289,17 +273,19 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
                     (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
                 ]
                 if comparison_type == "rate":
-                    y_data = df_area_sex_age[age_columns[age]] / df_area_sex_age["総数"]
+                    y_data = df_area_sex_age[age] / df_area_sex_age["総数"]
                     y_title = "割合"
+                    y_tickformat = ".2%"
                 else:
-                    y_data = df_area_sex_age[age_columns[age]]
+                    y_data = df_area_sex_age[age]
                     y_title = "人数"
+                    y_tickformat = None
                 fig.add_trace(
                     go.Scatter(
                         x=df_area_sex_age["年度"],
                         y=y_data,
                         mode="lines+markers",
-                        name=f"{area} {sex} {age_columns[age]}",
+                        name=f"{area} {sex} {age}",
                         line=dict(width=line_width, dash=line_style),
                         marker=dict(symbol=symbol, size=12),
                     )
@@ -325,7 +311,11 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
         title="人口分布の推移",
         title_font_size=24,
         xaxis=dict(title="年度", title_font=dict(size=20)),
-        yaxis=dict(title=y_title, title_font=dict(size=20)),
+        yaxis=dict(
+            title=y_title,
+            title_font=dict(size=20),
+            tickformat=y_tickformat,
+        ),
         yaxis2=dict(
             title="高齢化率",
             title_font=dict(size=20),

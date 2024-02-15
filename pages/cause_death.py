@@ -147,7 +147,7 @@ settings = html.Div(
                             id="cause-death-comparison-type-dropdown",
                             options=[
                                 {"label": "人数", "value": "people"},
-                                {"label": "割合", "value": "rate"},
+                                {"label": "年代別割合", "value": "rate"},
                             ],
                             value="people",
                             className="setting_dropdown",
@@ -336,9 +336,11 @@ def update_cause_death_graph(comparison_type, ages, sexes, categories, areas):
                             / df_area_category_sex_age["総数(人)"]
                         )
                         y_title = "割合"
+                        y_tickformat = ".2%"
                     else:
                         y_data = df_area_category_sex_age[age]
                         y_title = "人数"
+                        y_tickformat = None
                     graph_legend_name = legend_name(
                         ages, age, sexes, sex, categories, category, areas, area
                     )
@@ -427,7 +429,11 @@ def update_cause_death_graph(comparison_type, ages, sexes, categories, areas):
         title="死因別死亡者数の推移",
         title_font_size=24,
         xaxis=dict(title="年度", title_font=dict(size=20)),
-        yaxis=dict(title=y_title, title_font=dict(size=20)),
+        yaxis=dict(
+            title=y_title,
+            title_font=dict(size=20),
+            tickformat=y_tickformat,
+        ),
         legend=dict(
             x=1.05,
             y=1,
