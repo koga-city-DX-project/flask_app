@@ -487,11 +487,15 @@ def update_graph(target_select, ward_select, overall_compare):
                     name=f"{ward} 要介護認定{opt}",
                 )
             )
-        # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
-        if len(ward_select) == 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
-        elif len(ward_select) > 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
+            # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
+            if len(ward_select) <= 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 1
+                )
+            elif len(ward_select) > 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 2
+                )
         # ここを消すな。全体の割合なのか総数なのかの判定を行っている。
         if overall_compare == ["c1"] and target_select == "行政区別P":
             overall_checked(fig, years, opt, 1)
@@ -532,11 +536,15 @@ def update_graph(target_select, ward_select, overall_compare):
                     name=f"{ward} 要介護認定{opt}",
                 )
             )
-        # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
-        if len(ward_select) == 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
-        elif len(ward_select) > 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
+            # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
+            if len(ward_select) <= 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 1
+                )
+            elif len(ward_select) > 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 2
+                )
         # ここを消すな。全体の割合なのか総数なのかの判定を行っている。
         if overall_compare == ["c1"] and target_select == "小学校区別P":
             overall_checked(fig, years, opt, 1)
@@ -552,7 +560,7 @@ def update_graph(target_select, ward_select, overall_compare):
             title_font=dict(size=20),
             tickformat=tform,
         ),
-        barmode="overlay",
+        barmode="group",
     )
 
     return fig
