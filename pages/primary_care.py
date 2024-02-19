@@ -155,8 +155,15 @@ scho_op = school_option_set()
 all_op = all_option_set()
 
 
-def overall_checked(fig, years, opt):
-    certified_rates = [all_data_rate[year]["Total Certified Rate"] for year in years]
+def overall_checked(fig, years, opt, val):
+    if val == 1:
+        certified_rates = [
+            all_data_rate[year]["Total Certified Rate"] for year in years
+        ]
+    elif val == 2:
+        certified_rates = [
+            all_data_rate[year]["Total Certified Count"] for year in years
+        ]
     c_rates = [list(rate.values())[0] for rate in certified_rates]
     fig.add_trace(
         go.Scatter(
@@ -485,8 +492,11 @@ def update_graph(target_select, ward_select, overall_compare):
             title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
         elif len(ward_select) > 1:
             title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
-        if overall_compare == ["c1"]:
-            overall_checked(fig, years, opt)
+        # ここを消すな。全体の割合なのか総数なのかの判定を行っている。
+        if overall_compare == ["c1"] and target_select == "行政区別P":
+            overall_checked(fig, years, opt, 1)
+        elif overall_compare == ["c1"] and target_select == "行政区別C":
+            overall_checked(fig, years, opt, 2)
 
     elif target_select == "小学校区別P" or target_select == "小学校区別C":
         if isinstance(ward_select, str):
@@ -527,8 +537,11 @@ def update_graph(target_select, ward_select, overall_compare):
             title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
         elif len(ward_select) > 1:
             title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
-        if overall_compare == ["c1"]:
-            overall_checked(fig, years, opt)
+        # ここを消すな。全体の割合なのか総数なのかの判定を行っている。
+        if overall_compare == ["c1"] and target_select == "小学校区別P":
+            overall_checked(fig, years, opt, 1)
+        elif overall_compare == ["c1"] and target_select == "小学校区別C":
+            overall_checked(fig, years, opt, 2)
 
     fig.update_layout(
         title_text=title,
