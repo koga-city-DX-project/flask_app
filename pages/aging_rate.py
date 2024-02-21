@@ -1,9 +1,10 @@
+import base64
 import math
 import os
 import re
-from typing import Dict, List
-import base64
 from io import StringIO
+from typing import Dict, List
+
 import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
@@ -70,7 +71,9 @@ def update_code_maps(df, district_code_map, school_zone_code_map):
     # 小学校区に対する処理
     for school_zone in df["小学校区コード名"].dropna().unique():
         if school_zone not in school_zone_code_map:
-            code = df.loc[df["小学校区コード名"] == school_zone, "小学校区コード"].iloc[0]
+            code = df.loc[df["小学校区コード名"] == school_zone, "小学校区コード"].iloc[
+                0
+            ]
             school_zone_code_map[school_zone] = code
 
     return district_code_map, school_zone_code_map
@@ -99,7 +102,9 @@ def create_aging_data():
             df["年齢"] = year - df["生年月日_year"]
             elderly_data = df[df["年齢"] >= 66].copy()
             total_elderly_population = len(elderly_data)
-            elderly_data.loc[:, "行政区"] = elderly_data["自治会コード名"].str.extract(r"^(.*区)")
+            elderly_data.loc[:, "行政区"] = elderly_data["自治会コード名"].str.extract(
+                r"^(.*区)"
+            )
 
             df.loc[:, "行政区"] = df["自治会コード名"].str.extract(r"^(.*区)")
             district_code_map, school_zone_code_map = update_code_maps(
@@ -155,8 +160,12 @@ def create_data_to_export():
     for year, data in aging_data.items():
         total_elderly_population = data["TotalElderlyPopulation"]
         total_population = data["TotalPopulation"]
-        overall_aging_rate = (total_elderly_population / total_population) * 100 if total_population > 0 else 0
-        
+        overall_aging_rate = (
+            (total_elderly_population / total_population) * 100
+            if total_population > 0
+            else 0
+        )
+
         for district, rate in data["AgingRateDistrict"].items():
             district_code = district_code_map.get(district, 0)
             data_to_export.append(
@@ -179,7 +188,7 @@ def create_data_to_export():
                     school_zone_code,
                 ]
             )
-        
+
         data_to_export.append([year, "全体", "全体の平均", overall_aging_rate, 0])
 
     df_export = pd.DataFrame(
@@ -284,7 +293,9 @@ settings = html.Div(
                             className="setting_dropdown",
                             placeholder="種類を選択してください",
                         ),
-                        html.P("表示区の絞り込み", className="font-weight-bold option_P"),
+                        html.P(
+                            "表示区の絞り込み", className="font-weight-bold option_P"
+                        ),
                         dcc.Dropdown(
                             id="display-area-dropdown",
                             options=[],
@@ -369,6 +380,7 @@ layout = html.Div(
 
 create_aging_data()  # グラフ表示用のデータを作成
 create_data_to_export()  # 出力用のデータを作成
+
 
 custom_colors = [
     "blue",  # 濃い青
@@ -532,7 +544,15 @@ def update_display_area_options(selected_distinction):
     ],
 )
 def toggle_modal(
-    n_open, n_cancel, n_download, is_open, distinction, areas, file_name, zoom_range, show_overall_aging_rate
+    n_open,
+    n_cancel,
+    n_download,
+    is_open,
+    distinction,
+    areas,
+    file_name,
+    zoom_range,
+    show_overall_aging_rate,
 ):
     ctx = dash.callback_context
 
@@ -543,9 +563,11 @@ def toggle_modal(
     distinction_text = (
         "行政区別"
         if distinction == "district"
-        else "小学校区別"
-        if distinction == "schoolzone"
-        else "未選択(※自動的に行政区別が選択されます)"
+        else (
+            "小学校区別"
+            if distinction == "schoolzone"
+            else "未選択(※自動的に行政区別が選択されます)"
+        )
     )
     file_name = re.sub(r"[\s　]+", "", file_name) if file_name else ""
     if file_name is None or file_name == "":
@@ -595,7 +617,9 @@ def toggle_modal(
     ],
     prevent_initial_call=True,
 )
-def download_file(n_clicks, distinction, areas, file_name, zoom_range, show_overall_aging_rate):
+def download_file(
+    n_clicks, distinction, areas, file_name, zoom_range, show_overall_aging_rate
+):
     ctx = dash.callback_context
 
     if not ctx.triggered:
@@ -605,14 +629,11 @@ def download_file(n_clicks, distinction, areas, file_name, zoom_range, show_over
     if button_id == "aging-download-confirm-button":
         filepath = "/usr/src/data/save/20240124aging_rate.csv"
         df = pd.read_csv(filepath)
-        df_filtered = filter_df_by_distinction(df, distinction,show_overall_aging_rate)
-        print(df_filtered)
+        df_filtered = filter_df_by_distinction(df, distinction, show_overall_aging_rate)
         if areas:
             if show_overall_aging_rate == ["show"]:
                 areas.append("全体の平均")
-                print(areas)
             df_filtered = df_filtered[df_filtered["区名"].isin(areas)]
-            print(df_filtered)
         if zoom_range:
             df_filtered = df_filtered[
                 (df_filtered["年度"] >= float(zoom_range[0]))
@@ -620,7 +641,6 @@ def download_file(n_clicks, distinction, areas, file_name, zoom_range, show_over
             ]
         if file_name is None or file_name == "":
             file_name = "aging_rate"
-        print(df_filtered)
         df_filtered = df_filtered.to_csv(index=False)
         b64 = base64.b64encode(df_filtered.encode("CP932")).decode("CP932")
         return dict(content=b64, filename=f"{file_name}.csv", base64=True)
@@ -667,7 +687,7 @@ def update_zoom_range_store(relayoutData, distinction, areas):
     return no_update
 
 
-def filter_df_by_distinction(df, distinction,show_overall_aging_rate):
+def filter_df_by_distinction(df, distinction, show_overall_aging_rate):
     if distinction == "district" or distinction is None:
         filter_condition = ["行政区"]
     elif distinction == "schoolzone":
@@ -678,5 +698,5 @@ def filter_df_by_distinction(df, distinction,show_overall_aging_rate):
         filter_condition.append("全体")
     filtered_df = df[df["区別種類"].isin(filter_condition)]
     filtered_df = filtered_df.drop(columns=["区別種類"])
-        
+
     return filtered_df
