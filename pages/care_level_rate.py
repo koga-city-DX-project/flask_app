@@ -309,7 +309,7 @@ def update_graph(selected_care_levels, selected_graph_type):
                         name=f"{care_level}総人数",
                         marker=dict(
                             color=color_map.get(care_level, "black"),
-                            opacity=0.6,
+                            opacity=0.5,
                         ),
                     )
                 )
@@ -333,7 +333,7 @@ def update_graph(selected_care_levels, selected_graph_type):
                     name=care_level,
                     marker=dict(
                         color=color_map.get(care_level, "black"),
-                        opacity=0.7,
+                        opacity=0.6,
                     ),
                 )
             )
