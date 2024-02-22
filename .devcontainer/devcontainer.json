@@ -1,10 +1,11 @@
 {
-	"name": "flask-python3",
+	"name": "app-test",
 	"build": {
         "dockerfile": "Dockerfile"
     },
+	"image": "app-test",
+    "appPort": ["5000:5000"],
 	"workspaceFolder": "/usr/src/",
-	"runArgs": ["--gpus", "all"],
 	"customizations": {
 		"vscode": {
 			"settings": {
@@ -57,6 +58,6 @@
 			]
 		}
 	},
-	"workspaceMount": "source=${localEnv:HOME}${localEnv:USERPROFILE}/flask_app,target=/usr/src/,type=bind,consistency=cached",
+	"workspaceMount": "source=C:/Users/User/Desktop/古賀市DX/dash_app-app-test/dash_app-app-test,target=/usr/src/,type=bind,consistency=cached",
 	"postCreateCommand": "/bin/sh .devcontainer/postCreateCommand.sh"
 }
