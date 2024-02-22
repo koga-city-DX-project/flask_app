@@ -1,9 +1,13 @@
+import base64
 import glob
+import math
+import re
 
+import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objects as go
-from dash import Input, Output, callback, dcc, html
+from dash import Input, Output, State, callback, dcc, html
 
 all_data_rate = {}
 
@@ -41,6 +45,7 @@ column_types = {
 
 
 def load_and_process_files():
+    print("認定率・後期高齢者率のデータを作成中")
     global all_data_rate
     files = glob.glob("/usr/src/data/save/認定状態・総人口20**.csv")
     all_data = []
@@ -186,7 +191,7 @@ def elderly_graphview(fig, years, elderly_rates, ward, opt, val, col):
                     color=col,
                     opacity=0.3,
                 ),
-                opacity=0.5,  # 透明度の設定
+                opacity=0.7,  # 透明度の設定
             )
         )
         title = f"{ward}の要介護認定{opt}と後期高齢者{opt}の年次推移"
@@ -196,6 +201,68 @@ def elderly_graphview(fig, years, elderly_rates, ward, opt, val, col):
         ytitle = ""
     return title, ytitle
 
+
+def create_data_to_export():
+    print("認定率・後期高齢者率の出力用データ作成中")
+    export_data = [
+        [
+            "年度",
+            "区別種類",
+            "区名",
+            "要介護認定数",
+            "後期高齢者数",
+            "要介護認定率",
+            "後期高齢者率",
+        ]
+    ]
+
+    years = sorted(all_data_rate.keys())
+
+    for year in years:
+        data = all_data_rate.get(year, {})
+        total_certified_count = data.get("Total Certified Count")
+        total_elderly_count = data.get("Total Late Elderly Count")
+        total_certified_rate = data.get("Total Certified Rate")
+        total_elderly_rate = data.get("Total Late Elderly Rate")
+        total_certified_count = list(total_certified_count.values())[0]
+        total_elderly_count = list(total_elderly_count.values())[0]
+        total_certified_rate = list(total_certified_rate.values())[0]
+        total_elderly_rate = list(total_elderly_rate.values())[0]
+
+        export_data.append(
+            [
+                year,
+                "全体",
+                "全体",
+                total_certified_count,
+                total_elderly_count,
+                total_certified_rate,
+                total_elderly_rate,
+            ]
+        )
+
+        for district, count in data.get("District Certified Count", {}).items():
+            elderly_count = data.get("District Elderly Count", {}).get(district, 0)
+            rate = data.get("District Certified Rate", {}).get(district, 0)
+            elderly_rate = data.get("District Elderly Rate", {}).get(district, 0)
+            export_data.append(
+                [year, "行政区", district, count, elderly_count, rate, elderly_rate]
+            )
+
+        for school, count in data.get("School Certified Count", {}).items():
+            elderly_count = data.get("School Elderly Count", {}).get(school, 0)
+            rate = data.get("School Certified Rate", {}).get(school, 0)
+            elderly_rate = data.get("School Elderly Rate", {}).get(school, 0)
+            export_data.append(
+                [year, "小学校区", school, count, elderly_count, rate, elderly_rate]
+            )
+
+    df_export_data = pd.DataFrame(export_data[1:], columns=export_data[0])
+    filepath = "/usr/src/data/save/20240221primary_care.csv"
+    df_export_data.to_csv(filepath, index=False)
+
+
+create_data_to_export()
 
 custom_colors = [
     "blue",  # 濃い青
@@ -209,7 +276,6 @@ custom_colors = [
     "#17becf",  # 濃いシアン
     "#ff6600",  # 濃いオレンジ
 ]
-
 
 contents = html.Div(
     [
@@ -249,6 +315,7 @@ contents = html.Div(
                         ],
                     },
                 ),
+                html.Div(id="primary-care-zoom-range-store", style={"display": "none"}),
             ]
         ),
     ],
@@ -343,13 +410,48 @@ settings = html.Div(
                             options=[{"label": "全体と比較する", "value": "c1"}],
                             className="option_P",
                         ),
+                        dbc.Input(
+                            id="primary-care-file-name-input",
+                            placeholder="ファイル名を入力",
+                            type="text",
+                            className="setting_button",
+                        ),
                         dbc.Button(
-                            href="#",
+                            id="primary-care-download-button",
                             children="ファイルの出力",
                             className="text-white setting_button d-flex justify-content-center",
                             external_link="true",
                             color="secondary",
                         ),
+                        dbc.Modal(
+                            [
+                                dbc.ModalHeader(id="primary-care-modal-header"),
+                                dbc.ModalBody(
+                                    [
+                                        html.Div(id="primary-care-modal-text"),
+                                        html.Div(
+                                            [
+                                                dbc.Button(
+                                                    "ダウンロード",
+                                                    id="primary-care-download-confirm-button",
+                                                    color="secondary",
+                                                    className="me-2 bg-primary",
+                                                ),
+                                                dbc.Button(
+                                                    "戻る",
+                                                    id="primary-care-cancel-button",
+                                                    color="secondary",
+                                                ),
+                                            ],
+                                            className="d-flex justify-content-center",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            id="primary-care-modal",
+                            is_open=False,
+                        ),
+                        dcc.Download(id="download-primary-care"),
                     ],
                     className="setting d-grid",
                 ),
@@ -582,3 +684,199 @@ def update_graph(target_select, ward_select, overall_compare):
     )
 
     return fig
+
+
+@callback(
+    [
+        Output("primary-care-modal", "is_open"),
+        Output("primary-care-modal-header", "children"),
+        Output("primary-care-modal-text", "children"),
+    ],
+    [
+        Input("primary-care-download-button", "n_clicks"),
+        Input("primary-care-cancel-button", "n_clicks"),
+        Input("primary-care-download-confirm-button", "n_clicks"),
+    ],
+    [
+        State("primary-care-modal", "is_open"),
+        State("target_select", "value"),
+        State("ward_select", "value"),
+        State("primary-care-file-name-input", "value"),
+        State("primary-care-zoom-range-store", "children"),
+        State("overall_compare", "value"),
+    ],
+)
+def toggle_modal(
+    n_open,
+    n_cancel,
+    n_download,
+    is_open,
+    distinction,
+    areas,
+    file_name,
+    zoom_range,
+    show_overall_primary_care,
+):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    file_name = re.sub(r"[\s　]+", "", file_name) if file_name else ""
+    if file_name is None or file_name == "":
+        file_name = "primary_care.csv(※ファイル名未入力時)"
+    else:
+        file_name = f"{file_name}.csv"
+    if not isinstance(areas, list):
+        areas = [areas]
+    if show_overall_primary_care == ["c1"]:
+        areas.append("全体")
+    areas_text = ", ".join(filter(None, areas)) if areas else "選択されていません。"
+    data = [
+        {"label": "全体", "value": "全体P"},
+        {"label": "全体", "value": "全体C"},
+        {"label": "行政区別", "value": "行政区別P"},
+        {"label": "行政区別", "value": "行政区別C"},
+        {"label": "小学校区別", "value": "小学校区別P"},
+        {"label": "小学校区別", "value": "小学校区別C"},
+    ]
+
+    distinction_text = next(
+        (item["label"] for item in data if item["value"] == distinction),
+    )
+    if distinction == "全体P" or distinction == "全体C":
+        distinction_text = "行政区、小学校区も含めたすべての区"
+        areas_text = "---"
+    if zoom_range:
+        start_year = math.ceil(zoom_range[0])
+        end_year = math.floor(zoom_range[1])
+        year_text = f"{start_year}年 - {end_year}年"
+    else:
+        year_text = "すべての年度"
+
+    modal_body_text = [
+        html.Div("ファイル名"),
+        html.P(file_name),
+        html.Div("区別種類"),
+        html.P(distinction_text),
+        html.Div(
+            [
+                html.Div("選択区"),
+                html.P(areas_text),
+            ]
+        ),
+        html.Div("選択年度"),
+        html.P(year_text),
+    ]
+
+    if button_id == "primary-care-download-button":
+        return True, "ファイルの出力", modal_body_text
+    elif button_id in [
+        "primary-care-cancel-button",
+        "primary-care-download-confirm-button",
+    ]:
+        return False, "", modal_body_text
+    return is_open, "", modal_body_text
+
+
+@callback(
+    Output("primary-care-zoom-range-store", "children"),
+    [
+        Input("certification_rate_graph", "relayoutData"),
+        Input("target_select", "value"),
+        Input("ward_select", "value"),
+    ],
+)
+def update_zoom_range_store(relayoutData, distinction, areas):
+    if not relayoutData:
+        return dash.no_update
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "target_select" or button_id == "ward_select":
+        return None
+    if "xaxis.autorange" in relayoutData or "yaxis.autorange" in relayoutData:
+        return None
+    if ("yaxis.range[0]" in relayoutData or "yaxis.range[1]" in relayoutData) and (
+        "xaxis.range[0]" not in relayoutData or "xaxis.range[1]" not in relayoutData
+    ):
+        return dash.no_update
+    if (
+        relayoutData
+        and "xaxis.range[0]" in relayoutData
+        and "xaxis.range[1]" in relayoutData
+    ):
+        if relayoutData["xaxis.range[0]"] <= 2000:
+            relayoutData["xaxis.range[0]"] += 2001
+            relayoutData["xaxis.range[1]"] += 2001
+        print(relayoutData)
+        return [relayoutData["xaxis.range[0]"], relayoutData["xaxis.range[1]"]]
+    return dash.no_update
+
+
+@callback(
+    Output("download-primary-care", "data"),
+    [Input("primary-care-download-confirm-button", "n_clicks")],
+    [
+        State("target_select", "value"),
+        State("ward_select", "value"),
+        State("primary-care-file-name-input", "value"),
+        State("primary-care-zoom-range-store", "children"),
+        State("overall_compare", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def download_file(
+    n_clicks,
+    target_select,
+    ward_select,
+    file_name,
+    zoom_range,
+    show_overall_primary_care,
+):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "primary-care-download-confirm-button":
+        filepath = "/usr/src/data/save/20240221primary_care.csv"
+        df = pd.read_csv(filepath)
+        df_filtered = filter_df_by_target_select(
+            df, target_select, show_overall_primary_care
+        )
+        if not isinstance(ward_select, list):
+            ward_select = [ward_select]
+        if ward_select and (target_select != "全体P" and target_select != "全体C"):
+            if show_overall_primary_care == ["c1"]:
+                ward_select.append("全体")
+            df_filtered = df_filtered[df_filtered["区名"].isin(ward_select)]
+        if zoom_range:
+            df_filtered = df_filtered[
+                (df_filtered["年度"] >= float(zoom_range[0]))
+                & (df_filtered["年度"] <= float(zoom_range[1]))
+            ]
+        if file_name is None or file_name == "":
+            file_name = "primary_care"
+        df_filtered = df_filtered.to_csv(index=False)
+        b64 = base64.b64encode(df_filtered.encode("CP932")).decode("CP932")
+        return dict(content=b64, filename=f"{file_name}.csv", base64=True)
+
+
+def filter_df_by_target_select(df, target_select, show_overall_primary_care):
+    if target_select == "全体P" or target_select == "全体C":
+        filter_condition = ["全体", "行政区", "小学校区"]
+    elif target_select == "行政区別P" or target_select == "行政区別C":
+        filter_condition = ["行政区"]
+    elif target_select == "小学校区別P" or target_select == "小学校区別C":
+        filter_condition = ["小学校区"]
+    if show_overall_primary_care == ["c1"]:
+        filter_condition.append("全体")
+    filtered_df = df[df["区別種類"].isin(filter_condition)]
+    return filtered_df

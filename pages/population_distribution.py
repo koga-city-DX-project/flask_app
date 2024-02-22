@@ -1,4 +1,6 @@
-import colorsys
+import base64
+import math
+import re
 
 import dash
 import dash_bootstrap_components as dbc
@@ -44,7 +46,8 @@ contents = html.Div(
                             "hoverCompareCartesian",
                         ],
                     },
-                )
+                ),
+                html.Div(id="population-zoom-range-store", style={"display": "none"}),
             ],
         ),
     ],
@@ -82,7 +85,7 @@ settings = html.Div(
                             id="population-comparison-type-dropdown",
                             options=[
                                 {"label": "人数", "value": "people"},
-                                {"label": "年代別割合", "value": "rate"},
+                                {"label": "年代別構成比", "value": "rate"},
                             ],
                             value="people",
                             className="setting_dropdown",
@@ -168,7 +171,7 @@ settings = html.Div(
                             className="setting_button",
                         ),
                         dbc.Button(
-                            id="population-file-download-button",
+                            id="population-download-button",
                             children="ファイルの出力",
                             className="text-white setting_button d-flex justify-content-center",
                             external_link="true",
@@ -335,18 +338,170 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
 
 
 @callback(
-    Output("download-population-distribution", "data"),
-    [Input("care-lebel-download-button", "n_clicks")],
     [
-        State("population-age-dropdown", "value"),
+        Output("population-modal", "is_open"),
+        Output("population-modal-header", "children"),
+        Output("population-modal-text", "children"),
+    ],
+    [
+        Input("population-download-button", "n_clicks"),
+        Input("population-cancel-button", "n_clicks"),
+        Input("population-download-confirm-button", "n_clicks"),
+    ],
+    [
+        State("population-modal", "is_open"),
         State("population-sex-type-dropdown", "value"),
         State("population-area-dropdown", "value"),
-        State("population-comparison-type-dropdown", "value"),
+        State("population-aging-rate-checklist", "value"),
+        State("population-file-name-input", "value"),
+        State("population-zoom-range-store", "children"),
     ],
 )
-def generate_csv(
-    n_clicks, selected_ages, selected_sexes, selected_areas, comparison_type
+def toggle_modal(
+    n_open,
+    n_cancel,
+    n_download,
+    is_open,
+    sexes,
+    areas,
+    aging_rate_visibility,
+    file_name,
+    zoom_range,
 ):
-    if n_clicks is None:
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    sexes_text = ", ".join(sexes) if sexes else "男性,女性,男女計"
+    file_name = re.sub(r"[\s　]+", "", file_name) if file_name else ""
+    if file_name is None or file_name == "":
+        file_name = "population.csv(※ファイル名未入力時)"
+    else:
+        file_name = f"{file_name}.csv"
+    areas_text = ", ".join(areas) if areas else "古賀市,福岡県,国"
+    aging_text = "表示" if aging_rate_visibility else "非表示"
+    if zoom_range:
+        start_year = math.ceil(zoom_range[0])
+        end_year = math.floor(zoom_range[1])
+        year_text = f"{start_year}年 - {end_year}年"
+    else:
+        year_text = "すべての年度"
+    modal_body_text = [
+        html.Div("ファイル名"),
+        html.P(file_name),
+        html.Div("選択性別"),
+        html.P(sexes_text),
+        html.Div(
+            [
+                html.Div("選択地域"),
+                html.P(areas_text),
+            ]
+        ),
+        html.Div("高齢化率"),
+        html.P(aging_text),
+        html.Div("選択年度"),
+        html.P(year_text),
+    ]
+
+    if button_id == "population-download-button":
+        return True, "ファイルの出力", modal_body_text
+    elif button_id in [
+        "population-cancel-button",
+        "population-download-confirm-button",
+    ]:
+        return False, "", modal_body_text
+    return is_open, "", modal_body_text
+
+
+@callback(
+    Output("download-population-distribution", "data"),
+    [Input("population-download-confirm-button", "n_clicks")],
+    [
+        State("population-sex-type-dropdown", "value"),
+        State("population-area-dropdown", "value"),
+        State("population-file-name-input", "value"),
+        State("population-zoom-range-store", "children"),
+        State("population-aging-rate-checklist", "value"),
+    ],
+    prevent_initial_call=True,
+)
+def download_file(n_clicks, sexes, areas, file_name, zoom_range, aging_rate_visibility):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "population-download-confirm-button":
+        filepath = "/usr/src/data/save/人口分布(国・福岡県・古賀市).csv"
+        df = pd.read_csv(filepath)
+        df_filtered = filter_df(df, sexes, areas, zoom_range, aging_rate_visibility)
+        if file_name is None or file_name == "":
+            file_name = "population"
+        df_filtered = df_filtered.to_csv(index=False)
+        b64 = base64.b64encode(df_filtered.encode("CP932")).decode("CP932")
+        return dict(content=b64, filename=f"{file_name}.csv", base64=True)
+
+
+@callback(
+    Output("population-zoom-range-store", "children"),
+    [
+        Input("aging_rate-graph", "relayoutData"),
+        Input("population-comparison-type-dropdown", "value"),
+        Input("population-age-dropdown", "value"),
+        Input("population-sex-type-dropdown", "value"),
+        Input("population-area-dropdown", "value"),
+        Input("population-aging-rate-checklist", "value"),
+    ],
+)
+def update_zoom_range_store(
+    relayoutData, comparison_type, age, sex, area, aging_rate_visibility
+):
+    if not relayoutData:
         return dash.no_update
-    return 0
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if (
+        button_id == "population-comparison-type-dropdown"
+        or button_id == "population-age-dropdown"
+        or button_id == "population-sex-type-dropdown"
+        or button_id == "population-area-dropdown"
+        or button_id == "population-aging-rate-checklist"
+    ):
+        return None
+    if "xaxis.autorange" in relayoutData or "yaxis.autorange" in relayoutData:
+        return None
+    if ("yaxis.range[0]" in relayoutData or "yaxis.range[1]" in relayoutData) and (
+        "xaxis.range[0]" not in relayoutData or "xaxis.range[1]" not in relayoutData
+    ):
+        return dash.no_update
+    if (
+        relayoutData
+        and "xaxis.range[0]" in relayoutData
+        and "xaxis.range[1]" in relayoutData
+    ):
+        return [relayoutData["xaxis.range[0]"], relayoutData["xaxis.range[1]"]]
+    return dash.no_update
+
+
+def filter_df(df, sexes, areas, zoom_range, aging_rate_visibility):
+    if areas is None or areas == []:
+        areas = ["古賀市", "福岡県", "国"]
+    if sexes is None or sexes == []:
+        sexes = ["男性", "女性", "男女計"]
+
+    df_filtered = df[df["地域"].isin(areas)]
+    df_filtered = df_filtered[df_filtered["性別"].isin(sexes)]
+    if aging_rate_visibility != ["show"]:
+        df_filtered = df_filtered.drop(columns=["高齢化率"])
+    if zoom_range:
+        df_filtered = df_filtered[
+            (df_filtered["年度"] >= float(zoom_range[0]))
+            & (df_filtered["年度"] <= float(zoom_range[1]))
+        ]
+    return df_filtered

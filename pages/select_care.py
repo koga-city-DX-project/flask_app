@@ -32,7 +32,7 @@ contents = html.Div(
             [
                 dbc.Col(
                     dbc.Button(
-                        "介護度データ出力・分析",
+                        "要介護認定率及び後期高齢者率の推移",
                         href="/primary_care",
                         className="menu_btn d-flex align-items-center justify-content-center",
                         external_link="true",

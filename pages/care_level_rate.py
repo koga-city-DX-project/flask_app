@@ -1,10 +1,13 @@
+import base64
+import math
 import os
 import re
 
+import dash
 import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objs as go
-from dash import Input, Output, callback, dcc, html
+from dash import Input, Output, State, callback, dcc, html
 
 data_directory = "/usr/src/data/save/"
 file_pattern = re.compile(r"認定状態・総人口20(\d{2}).csv")
@@ -78,7 +81,8 @@ contents = html.Div(
                             "hoverCompareCartesian",
                         ],
                     },
-                )
+                ),
+                html.Div(id="care-level-zoom-range-store", style={"display": "none"}),
             ],
         ),
     ],
@@ -145,12 +149,46 @@ settings = html.Div(
                             value="line",
                             className="setting_dropdown",
                         ),
+                        dbc.Input(
+                            id="care-level-file-name-input",
+                            placeholder="ファイル名を入力",
+                            type="text",
+                            className="setting_button",
+                        ),
                         dbc.Button(
-                            id="care-lebel-download-button",
+                            id="care-level-download-button",
                             children="ファイルの出力",
                             className="text-white setting_button d-flex justify-content-center",
                             external_link="true",
                             color="secondary",
+                        ),
+                        dbc.Modal(
+                            [
+                                dbc.ModalHeader(id="care-level-modal-header"),
+                                dbc.ModalBody(
+                                    [
+                                        html.Div(id="care-level-modal-text"),
+                                        html.Div(
+                                            [
+                                                dbc.Button(
+                                                    "ダウンロード",
+                                                    id="care-level-download-confirm-button",
+                                                    color="secondary",
+                                                    className="me-2 bg-primary",
+                                                ),
+                                                dbc.Button(
+                                                    "戻る",
+                                                    id="care-level-cancel-button",
+                                                    color="secondary",
+                                                ),
+                                            ],
+                                            className="d-flex justify-content-center",
+                                        ),
+                                    ]
+                                ),
+                            ],
+                            id="care-level-modal",
+                            is_open=False,
                         ),
                         dcc.Download(id="download-care-level-rate"),
                     ],
@@ -249,14 +287,11 @@ def update_graph(selected_care_levels, selected_graph_type):
     filepath = "/usr/src/data/save/認定者数0124.csv"
     df = pd.read_csv(filepath, encoding="utf-8")
 
-    # 選択された介護度に基づいてデータをフィルタリング
     if len(selected_care_levels) != 0:
         df = df[df["二次判定要介護度名"].isin(selected_care_levels)]
 
-    # グラフの初期化
     fig = go.Figure()
 
-    # グラフタイプに基づいてグラフを描画
     if selected_graph_type == "line":
         care_levels = (
             df["二次判定要介護度名"].unique()
@@ -274,7 +309,7 @@ def update_graph(selected_care_levels, selected_graph_type):
                         name=f"{care_level}総人数",
                         marker=dict(
                             color=color_map.get(care_level, "black"),
-                            opacity=0.6,
+                            opacity=0.5,
                         ),
                     )
                 )
@@ -288,7 +323,6 @@ def update_graph(selected_care_levels, selected_graph_type):
                 )
             )
     elif selected_graph_type == "stacked_bar":
-        # 積み上げ棒グラフのデータを準備
         data = []
         for care_level in df["二次判定要介護度名"].unique():
             level_df = df[df["二次判定要介護度名"] == care_level]
@@ -299,14 +333,13 @@ def update_graph(selected_care_levels, selected_graph_type):
                     name=care_level,
                     marker=dict(
                         color=color_map.get(care_level, "black"),
-                        opacity=0.7,
+                        opacity=0.6,
                     ),
                 )
             )
         fig = go.Figure(data=data)
         fig.update_layout(barmode="stack")
 
-    # グラフのレイアウト設定
     fig.update_layout(
         title="選択された要介護度の年次推移",
         title_font=dict(size=24),
@@ -329,9 +362,158 @@ def update_graph(selected_care_levels, selected_graph_type):
 
 
 @callback(
+    [
+        Output("care-level-modal", "is_open"),
+        Output("care-level-modal-header", "children"),
+        Output("care-level-modal-text", "children"),
+    ],
+    [
+        Input("care-level-download-button", "n_clicks"),
+        Input("care-level-cancel-button", "n_clicks"),
+        Input("care-level-download-confirm-button", "n_clicks"),
+    ],
+    [
+        State("care-level-modal", "is_open"),
+        State("care-level-rate-dropdown", "value"),
+        State("care-level-file-name-input", "value"),
+        State("care-level-zoom-range-store", "children"),
+    ],
+)
+def toggle_modal(
+    n_open,
+    n_cancel,
+    n_download,
+    is_open,
+    levels,
+    file_name,
+    zoom_range,
+):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+
+    file_name = re.sub(r"[\s　]+", "", file_name) if file_name else ""
+    if file_name is None or file_name == "":
+        file_name = "care_level_rate.csv(※ファイル名未入力時)"
+    else:
+        file_name = f"{file_name}.csv"
+
+    levels_text = ", ".join(levels) if levels else "すべての介護度"
+    if zoom_range:
+        start_year = math.ceil(zoom_range[0])
+        end_year = math.floor(zoom_range[1])
+        year_text = f"{start_year}年 - {end_year}年"
+    else:
+        year_text = "すべての年度"
+    modal_body_text = [
+        html.Div("ファイル名"),
+        html.P(file_name),
+        html.Div(
+            [
+                html.Div("選択した介護度"),
+                html.P(levels_text),
+            ]
+        ),
+        html.Div("選択年度"),
+        html.P(year_text),
+    ]
+
+    if button_id == "care-level-download-button":
+        return True, "ファイルの出力", modal_body_text
+    elif button_id in [
+        "care-level-cancel-button",
+        "care-level-download-confirm-button",
+    ]:
+        return False, "", modal_body_text
+    return is_open, "", modal_body_text
+
+
+@callback(
+    Output("care-level-zoom-range-store", "children"),
+    [
+        Input("care-level-graph", "relayoutData"),
+        Input("care-level-graph-type-dropdown", "value"),
+    ],
+)
+def update_zoom_range_store(relayoutData, graph_type):
+    if not relayoutData:
+        return dash.no_update
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "care-level-graph-type-dropdown":
+        return None
+    if "xaxis.autorange" in relayoutData or "yaxis.autorange" in relayoutData:
+        return None
+    if ("yaxis.range[0]" in relayoutData or "yaxis.range[1]" in relayoutData) and (
+        "xaxis.range[0]" not in relayoutData or "xaxis.range[1]" not in relayoutData
+    ):
+        return dash.no_update
+    if (
+        relayoutData
+        and "xaxis.range[0]" in relayoutData
+        and "xaxis.range[1]" in relayoutData
+    ):
+        return [relayoutData["xaxis.range[0]"], relayoutData["xaxis.range[1]"]]
+    return dash.no_update
+
+
+@callback(
     Output("download-care-level-rate", "data"),
-    [Input("care-lebel-download-button", "n_clicks")],
+    [Input("care-level-download-confirm-button", "n_clicks")],
+    [
+        State("care-level-rate-dropdown", "value"),
+        State("care-level-file-name-input", "value"),
+        State("care-level-zoom-range-store", "children"),
+    ],
     prevent_initial_call=True,
 )
-def download_csv(n_clicks):
-    return dcc.send_file("/usr/src/data/save/介護認定管理.csv")
+def download_file(n_clicks, care_level, file_name, zoom_range):
+    ctx = dash.callback_context
+
+    if not ctx.triggered:
+        button_id = "No clicks yet"
+    else:
+        button_id = ctx.triggered[0]["prop_id"].split(".")[0]
+    if button_id == "care-level-download-confirm-button":
+        filepath = "/usr/src/data/save/認定者数0124.csv"
+        df = pd.read_csv(filepath)
+        df_filtered = filter_df_by_care_level(df, care_level)
+
+        if zoom_range:
+            df_filtered = df_filtered[
+                (df_filtered["年度"] >= float(zoom_range[0]))
+                & (df_filtered["年度"] <= float(zoom_range[1]))
+            ]
+        if file_name is None or file_name == "":
+            file_name = "care_level_rate"
+        df_filtered = df_filtered[["Year", "二次判定要介護度名", "合計", "割合"]]
+        care_order = [
+            "要介護５",
+            "要介護４",
+            "要介護３",
+            "要介護２",
+            "要介護１",
+            "要支援２",
+            "要支援１",
+            "経過的要介護",
+        ]
+        df_filtered["二次判定要介護度名"] = pd.Categorical(
+            df_filtered["二次判定要介護度名"], categories=care_order, ordered=True
+        )
+        df_filtered = df_filtered.sort_values(by=["Year", "二次判定要介護度名"])
+        df_filtered = df_filtered.to_csv(index=False)
+        b64 = base64.b64encode(df_filtered.encode("CP932")).decode("CP932")
+        return dict(content=b64, filename=f"{file_name}.csv", base64=True)
+
+
+def filter_df_by_care_level(df, care_level):
+    if care_level:
+        df = df[df["二次判定要介護度名"].isin(care_level)]
+    return df
