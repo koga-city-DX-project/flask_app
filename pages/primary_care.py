@@ -175,7 +175,7 @@ def overall_checked(fig, years, opt, val):
     )
 
 
-def elderly_graphview(fig, years, elderly_rates, ward, opt, val):
+def elderly_graphview(fig, years, elderly_rates, ward, opt, val, col):
     if val == 1:
         fig.add_trace(
             go.Bar(
@@ -183,8 +183,8 @@ def elderly_graphview(fig, years, elderly_rates, ward, opt, val):
                 y=elderly_rates,
                 name=f"{ward} 後期高齢者{opt}",
                 marker=dict(
-                    color="lightblue",
-                    line=dict(color="#333", width=2),
+                    color=col,
+                    opacity=0.3,
                 ),
                 opacity=0.5,  # 透明度の設定
             )
@@ -195,6 +195,20 @@ def elderly_graphview(fig, years, elderly_rates, ward, opt, val):
         title = f"行政区別の要介護認定{opt}の年次推移"
         ytitle = ""
     return title, ytitle
+
+
+custom_colors = [
+    "blue",  # 濃い青
+    "#ff0000",  # 濃い赤
+    "green",  # 濃い緑
+    "#9467bd",  # 濃い紫
+    "#8c564b",  # 濃い茶色
+    "#e377c2",  # 濃いピンク
+    "gray",  # 濃いグレー
+    "#bcbd22",  # 濃い黄緑
+    "#17becf",  # 濃いシアン
+    "#ff6600",  # 濃いオレンジ
+]
 
 
 contents = html.Div(
@@ -456,7 +470,8 @@ def update_graph(target_select, ward_select, overall_compare):
     elif target_select == "行政区別P" or target_select == "行政区別C":
         if isinstance(ward_select, str):
             ward_select = [ward_select]
-        for ward in ward_select:
+        for i, ward in enumerate(ward_select):
+            color = custom_colors[i % len(custom_colors)]
             if target_select == "行政区別P":
                 certified_rates = [
                     all_data_rate[year]["District Certified Rate"].get(ward, 0)
@@ -485,13 +500,18 @@ def update_graph(target_select, ward_select, overall_compare):
                     y=certified_rates,
                     mode="lines+markers",
                     name=f"{ward} 要介護認定{opt}",
+                    line=dict(color=color),
                 )
             )
-        # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
-        if len(ward_select) == 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
-        elif len(ward_select) > 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
+            # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
+            if len(ward_select) <= 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 1, color
+                )
+            elif len(ward_select) > 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 2, color
+                )
         # ここを消すな。全体の割合なのか総数なのかの判定を行っている。
         if overall_compare == ["c1"] and target_select == "行政区別P":
             overall_checked(fig, years, opt, 1)
@@ -501,7 +521,8 @@ def update_graph(target_select, ward_select, overall_compare):
     elif target_select == "小学校区別P" or target_select == "小学校区別C":
         if isinstance(ward_select, str):
             ward_select = [ward_select]
-        for ward in ward_select:
+        for i, ward in enumerate(ward_select):
+            color = custom_colors[i % len(custom_colors)]
             if target_select == "小学校区別P":
                 certified_rates = [
                     all_data_rate[year]["School Certified Rate"].get(ward, 0)
@@ -530,13 +551,18 @@ def update_graph(target_select, ward_select, overall_compare):
                     y=certified_rates,
                     mode="lines+markers",
                     name=f"{ward} 要介護認定{opt}",
+                    line=dict(color=color),
                 )
             )
-        # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
-        if len(ward_select) == 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 1)
-        elif len(ward_select) > 1:
-            title, ytitle = elderly_graphview(fig, years, elderly_rates, ward, opt, 2)
+            # 後期高齢化率の縦棒グラフを追加（複数選択時には表示しない）
+            if len(ward_select) <= 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 1, color
+                )
+            elif len(ward_select) > 2:
+                title, ytitle = elderly_graphview(
+                    fig, years, elderly_rates, ward, opt, 2, color
+                )
         # ここを消すな。全体の割合なのか総数なのかの判定を行っている。
         if overall_compare == ["c1"] and target_select == "小学校区別P":
             overall_checked(fig, years, opt, 1)
@@ -552,7 +578,7 @@ def update_graph(target_select, ward_select, overall_compare):
             title_font=dict(size=20),
             tickformat=tform,
         ),
-        barmode="overlay",
+        barmode="group",
     )
 
     return fig
