@@ -663,21 +663,17 @@ def update_zoom_range_store(relayoutData, distinction, areas):
         button_id = "No clicks yet"
     else:
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
-    # ドロップダウンメニューの選択が変更された時は初期化
     if (
         button_id == "select-distinction-dropdown"
         or button_id == "display-area-dropdown"
     ):
         return None
-    # グラフ内でダブルクリックされた時は初期化
     if "xaxis.autorange" in relayoutData or "yaxis.autorange" in relayoutData:
         return None
-    # 縦方向のみのズーム操作の時は更新しない
     if ("yaxis.range[0]" in relayoutData or "yaxis.range[1]" in relayoutData) and (
         "xaxis.range[0]" not in relayoutData or "xaxis.range[1]" not in relayoutData
     ):
         return no_update
-    # 縦方向のズーム操作が含まれる時は更新する
     if (
         relayoutData
         and "xaxis.range[0]" in relayoutData

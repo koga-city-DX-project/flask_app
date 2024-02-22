@@ -380,7 +380,7 @@ def toggle_modal(
         file_name = "population.csv(※ファイル名未入力時)"
     else:
         file_name = f"{file_name}.csv"
-    areas_text = ", ".join(areas) if areas else "すべての地域"
+    areas_text = ", ".join(areas) if areas else "古賀市,福岡県,国"
     aging_text = "表示" if aging_rate_visibility else "非表示"
     if zoom_range:
         start_year = math.ceil(zoom_range[0])
