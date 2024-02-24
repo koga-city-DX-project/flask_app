@@ -8,26 +8,23 @@ from dash.dependencies import Input, Output
 from pages import (
     aging_rate,
     care_level_rate,
+    cause_death,
     population_distribution,
     primary_care,
     select_care,
     select_populations,
-    select_tax,
 )
 
-# home
-# cause_death,
 page_layouts = {
     "/": select_care.layout,
-    "/select_tax": select_tax.layout,
     "/primary_care": primary_care.layout,
     "/care_level_rate": care_level_rate.layout,
+    "/cause_death": cause_death.layout,
     "/select_populations": select_populations.layout,
     "/aging_rate": aging_rate.layout,
     "/population_distribution": population_distribution.layout,
 }
-# "/home": home.layout,
-# "/cause_death": cause_death.layout,
+
 external_stylesheets = ["bootstrap.min.css"]
 app = dash.Dash(
     __name__,
@@ -59,7 +56,7 @@ app.index_string = """
 """
 
 app.title = "テストページ"
-passPair = {"User1": "AAA", "User2": "BBB"}
+passPair = {"test-user": "OYJ4aWbPpN"}
 auth = dash_auth.BasicAuth(app, passPair)
 du.configure_upload(app, r"/usr/src/data")
 
