@@ -523,7 +523,7 @@ def toggle_modal(
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
     sexes_text = ", ".join(sexes) if sexes else "男性,女性,男女計"
     categories_text = ", ".join(categories) if categories else "すべての分類"
-    areas_text = ", ".join(areas) if areas else "古賀市,福岡県,国"
+    areas_text = ", ".join(areas) if areas else "古賀市"
     file_name = re.sub(r"[\s　]+", "", file_name) if file_name else ""
     if file_name is None or file_name == "":
         file_name = "cause_death.csv(※ファイル名未入力時)"
@@ -646,7 +646,7 @@ def update_zoom_range_store(
 
 def filter_df(df, sexes, categories, areas, zoom_range):
     if areas is None or areas == []:
-        areas = ["古賀市", "福岡県", "国"]
+        areas = ["古賀市"]
     if sexes is None or sexes == []:
         sexes = ["男性", "女性", "男女計"]
 
