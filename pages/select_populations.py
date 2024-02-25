@@ -99,8 +99,10 @@ settings = html.Div(
                 dbc.Col(
                     html.Div(
                         [
-                            html.H6(
-                                "分析ツール",
+                            html.Img(
+                                src="assets/images/KURA.png",
+                                style={"height": "40px", "width": "50%"},
+                                alt="KURA",
                             ),
                         ],
                         className="align-items-center",
@@ -136,26 +138,6 @@ settings = html.Div(
                             className=" text-white setting_button",
                             color="secondary",
                             disabled=True,
-                        ),
-                        dbc.Button(
-                            href="/select_tax",
-                            children="税務",
-                            className=" text-white setting_button",
-                            color="secondary",
-                        ),
-                        dbc.Button(
-                            id="",
-                            n_clicks=0,
-                            children="子ども",
-                            className=" text-white setting_button",
-                            color="secondary",
-                        ),
-                        dbc.Button(
-                            id="",
-                            n_clicks=0,
-                            children="○○に関して",
-                            className=" text-white setting_button",
-                            color="secondary",
                         ),
                         dbc.Button(
                             id="",

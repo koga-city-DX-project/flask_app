@@ -403,7 +403,7 @@ settings = html.Div(
                         dcc.Dropdown(
                             id="ward_select",
                             className="setting_dropdown",
-                            placeholder="表示区の絞り込み",
+                            placeholder="表示する区を選択してください",
                         ),
                         dcc.Checklist(
                             id="overall_compare",

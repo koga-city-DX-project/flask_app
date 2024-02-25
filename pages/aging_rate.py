@@ -576,7 +576,10 @@ def toggle_modal(
         file_name = f"{file_name}.csv"
     if show_overall_aging_rate == ["show"]:
         areas.append("全体の平均")
-    areas_text = ", ".join(areas) if areas else "すべての区"
+    if areas == ["全体の平均"]:
+        areas_text = "すべての区,全体の平均"
+    else:
+        areas_text = ", ".join(areas) if areas else "すべての区"
     if zoom_range:
         start_year = math.ceil(zoom_range[0])
         end_year = math.floor(zoom_range[1])
