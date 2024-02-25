@@ -58,7 +58,7 @@ app.index_string = """
 </html>
 """
 
-app.title = "テストページ"
+app.title = "KURA"
 passPair = {"User1": "AAA", "User2": "BBB"}
 auth = dash_auth.BasicAuth(app, passPair)
 du.configure_upload(app, r"/usr/src/data")
