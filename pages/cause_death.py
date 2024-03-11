@@ -7,8 +7,79 @@ import dash_bootstrap_components as dbc
 import pandas as pd
 import plotly.graph_objs as go
 from dash import Input, Output, State, callback, dcc, html
+from dash.exceptions import PreventUpdate
 
 df_path = "/usr/src/data/save/CauseDeath.csv"
+
+
+def calculate_age_range(df, start_age, end_age):
+    ages = []
+    for age in range(start_age, end_age, 5):
+        if age < 100:
+            age_range = f"{age}歳～{age + 4}歳"
+            ages.append(age_range)
+        if age == 100:
+            age_range = f"{age}歳以上"
+            ages.append(age_range)
+    y_data = df[ages].sum(axis=1)
+    if end_age == 150:
+        age_range = f"{start_age}歳以上"
+    else:
+        age_range = f"{start_age}歳～{end_age}歳"
+    result_df = pd.DataFrame(
+        {
+            "年度": df["年度"],
+            "地域": df["地域"],
+            "分類": df["分類"],
+            "性別": df["性別"],
+            "年齢": age_range,
+            "人数": y_data,
+        }
+    )
+    return result_df, ages, age_range
+
+
+def calculate_death_rate(df, denominator_category, reference_column="人数"):
+    """特定の分類の人数を基にして、各行のreference_columnの比率を計算します。
+
+
+    :param df: データフレーム。列に「年度」「分類」「人数(もしくはreference_column)」を含む。
+    :param denominator_column: 分母となる列名「分類」のリスト(リストの最初の要素が分母となる)
+    :param reference_column: 比率を計算するための参照列名
+    :return: 割合が計算されたデータフレーム
+    """
+    denominator_values = df[df["分類"] == denominator_category[0]].set_index("年度")[
+        reference_column
+    ]
+    df["割合"] = df.apply(
+        lambda row: row[reference_column] / denominator_values.loc[row["年度"]], axis=1
+    )
+    df = df[df["分類"] != denominator_category[0]]
+    return df
+
+
+def add_other_category(df, category_column, reference_column="人数"):
+    """列名「分類」に「その他」の行を追加します。
+    年度ごとの『category_columnでない分類の人数の合計』と『指定された列名「分類」の値(category_column)の人数』との差が「その他」の人数となります。
+
+    :param df: データフレーム。列に「年度」「分類」「人数(もしくはreference_column)」を含む。
+    :param category_column: 分類名のリスト(リストの最初の要素のみ参照されます。)
+    :param reference_column: 参照列名
+    :return: その他の行が追加されたデータフレーム
+    """
+    df = df[["年度", "分類", reference_column]]
+    denominator_values = df[df["分類"] == category_column[0]].set_index("年度")[
+        reference_column
+    ]
+    filtered_df = df[df["分類"] != category_column[0]]
+    other_values = filtered_df.groupby("年度")[reference_column].sum()
+    other_diff = denominator_values - other_values
+    other_df = other_diff.reset_index()
+    other_df[reference_column] = other_diff.values
+    other_df["分類"] = "その他"
+    df = pd.concat([df, other_df], ignore_index=True)
+    print(df)
+    return df
 
 
 def ensure_list(value, default_value):
@@ -49,9 +120,7 @@ def legend_name(ages, age, sexes, sex, categories, category, areas, area):
 
     if len(sexes) > 1 or (len(sexes) == 1 and sex != "男女計"):
         parts.append(sex)
-
-    if len(ages) > 1 or (len(ages) == 1 and age != "総数(人)"):
-        parts.append(age)
+    parts.append(age)
     legend_name = " ".join(parts)
     if legend_name == "":
         legend_name = f"{area}全体"
@@ -118,8 +187,36 @@ contents = html.Div(
                 html.Div(id="cause-death-zoom-range-store", style={"display": "none"}),
             ],
         ),
+        dbc.Row(
+            [
+                dbc.Col(
+                    dcc.Graph(
+                        id="cancer-stack-graph",
+                        style={"height": "80vh"},
+                        config={
+                            "displayModeBar": True,
+                            "displaylogo": False,
+                            "modeBarButtonsToAdd": [
+                                "pan2d",
+                                "autoScale2d",
+                            ],
+                            "modeBarButtonsToRemove": [
+                                "zoomIn2d",
+                                "zoomOut2d",
+                                "select2d",
+                                "lasso2d",
+                                "toggleSpikelines",
+                                "hoverClosestCartesian",
+                                "hoverCompareCartesian",
+                            ],
+                        },
+                    ),
+                    id="cancer-stack-graph-col",
+                ),
+            ]
+        ),
     ],
-    style={"height": "100vh"},
+    style={"height": "200vh"},
 )
 
 settings = html.Div(
@@ -149,45 +246,81 @@ settings = html.Div(
                         ),
                         html.Hr(),
                         html.P("年齢", className="font-weight-bold option_P"),
-                        dcc.Dropdown(
-                            id="cause-death-age-dropdown",
-                            options=[
-                                {"label": "10代", "value": "10代"},
-                                {"label": "20代", "value": "20代"},
-                                {"label": "30代", "value": "30代"},
-                                {"label": "40代", "value": "40代"},
-                                {"label": "50代", "value": "50代"},
-                                {"label": "60代", "value": "60代"},
-                                {"label": "70代", "value": "70代"},
-                                {"label": "80代", "value": "80代"},
-                                {"label": "90代", "value": "90代"},
-                                {"label": "0歳～4歳", "value": "0歳～4歳"},
-                                {"label": "5歳～9歳", "value": "5歳～9歳"},
-                                {"label": "10歳～14歳", "value": "10歳～14歳"},
-                                {"label": "15歳～19歳", "value": "15歳～19歳"},
-                                {"label": "20歳～24歳", "value": "20歳～24歳"},
-                                {"label": "25歳～29歳", "value": "25歳～29歳"},
-                                {"label": "30歳～34歳", "value": "30歳～34歳"},
-                                {"label": "35歳～39歳", "value": "35歳～39歳"},
-                                {"label": "40歳～44歳", "value": "40歳～44歳"},
-                                {"label": "45歳～49歳", "value": "45歳～49歳"},
-                                {"label": "50歳～54歳", "value": "50歳～54歳"},
-                                {"label": "55歳～59歳", "value": "55歳～59歳"},
-                                {"label": "60歳～64歳", "value": "60歳～64歳"},
-                                {"label": "65歳～69歳", "value": "65歳～69歳"},
-                                {"label": "70歳～74歳", "value": "70歳～74歳"},
-                                {"label": "75歳～79歳", "value": "75歳～79歳"},
-                                {"label": "80歳～84歳", "value": "80歳～84歳"},
-                                {"label": "85歳～89歳", "value": "85歳～89歳"},
-                                {"label": "90歳～94歳", "value": "90歳～94歳"},
-                                {"label": "95歳～99歳", "value": "95歳～99歳"},
-                                {"label": "100歳～", "value": "100歳～"},
-                                {"label": "総数(人)", "value": "総数(人)"},
+                        dbc.Row(
+                            [
+                                dbc.Col(
+                                    dcc.Dropdown(
+                                        id="cause-death-start-age-dropdown",
+                                        options=[
+                                            {"label": "0歳", "value": 0},
+                                            {"label": "5歳", "value": 5},
+                                            {"label": "10歳", "value": 10},
+                                            {"label": "15歳", "value": 15},
+                                            {"label": "20歳", "value": 20},
+                                            {"label": "25歳", "value": 25},
+                                            {"label": "30歳", "value": 30},
+                                            {"label": "35歳", "value": 35},
+                                            {"label": "40歳", "value": 40},
+                                            {"label": "45歳", "value": 45},
+                                            {"label": "50歳", "value": 50},
+                                            {"label": "55歳", "value": 55},
+                                            {"label": "60歳", "value": 60},
+                                            {"label": "65歳", "value": 65},
+                                            {"label": "70歳", "value": 70},
+                                            {"label": "75歳", "value": 75},
+                                            {"label": "80歳", "value": 80},
+                                            {"label": "85歳", "value": 85},
+                                            {"label": "90歳", "value": 90},
+                                            {"label": "95歳", "value": 95},
+                                            {"label": "100歳～", "value": 100},
+                                        ],
+                                        value=0,
+                                        clearable=False,
+                                    ),
+                                    width=5,
+                                    className="mb-3",
+                                ),
+                                dbc.Col(
+                                    html.P(
+                                        "～",
+                                        className="mb-3 d-flex align-items-center justify-content-center",
+                                    ),
+                                    width=2,
+                                ),
+                                dbc.Col(
+                                    dcc.Dropdown(
+                                        id="cause-death-end-age-dropdown",
+                                        options=[
+                                            {"label": "指定なし", "value": 150},
+                                            {"label": "99歳", "value": 99},
+                                            {"label": "94歳", "value": 94},
+                                            {"label": "89歳", "value": 89},
+                                            {"label": "84歳", "value": 84},
+                                            {"label": "79歳", "value": 79},
+                                            {"label": "74歳", "value": 74},
+                                            {"label": "69歳", "value": 69},
+                                            {"label": "64歳", "value": 64},
+                                            {"label": "59歳", "value": 59},
+                                            {"label": "54歳", "value": 54},
+                                            {"label": "49歳", "value": 49},
+                                            {"label": "44歳", "value": 44},
+                                            {"label": "39歳", "value": 39},
+                                            {"label": "34歳", "value": 34},
+                                            {"label": "29歳", "value": 29},
+                                            {"label": "24歳", "value": 24},
+                                            {"label": "19歳", "value": 19},
+                                            {"label": "14歳", "value": 14},
+                                            {"label": "9歳", "value": 9},
+                                            {"label": "4歳", "value": 4},
+                                        ],
+                                        value=150,
+                                        clearable=False,
+                                    ),
+                                    width=5,
+                                    className="mb-3",
+                                ),
                             ],
-                            value=[],
-                            className="setting_dropdown",
-                            placeholder="全年代の合計人数を表示",
-                            multi=True,
+                            className="g-0 setting_dropdown",
                         ),
                         html.P("性別", className="font-weight-bold option_P"),
                         dcc.Dropdown(
@@ -195,7 +328,6 @@ settings = html.Div(
                             options=[
                                 {"label": "男性", "value": "男性"},
                                 {"label": "女性", "value": "女性"},
-                                {"label": "男女計", "value": "男女計"},
                             ],
                             value=[],
                             className="setting_dropdown",
@@ -266,6 +398,13 @@ settings = html.Div(
                             is_open=False,
                         ),
                         dcc.Download(id="download-cause-death-data"),
+                        dbc.Button(
+                            "HTMLとしてグラフを出力",
+                            id="export-graph-button",
+                            className="text-white setting_button d-flex justify-content-center",
+                            color="secondary",
+                        ),
+                        dcc.Download(id="download-cause-death-html"),
                     ],
                     className="setting d-grid",
                 ),
@@ -295,18 +434,27 @@ layout = html.Div(
 
 
 @callback(
-    Output("cause-death-graph", "figure"),
     [
-        Input("cause-death-age-dropdown", "value"),
+        Output("cause-death-graph", "figure"),
+        Output("download-cause-death-html", "data"),
+    ],
+    [
+        Input("cause-death-start-age-dropdown", "value"),
+        Input("cause-death-end-age-dropdown", "value"),
         Input("cause-death-sex-type-dropdown", "value"),
         Input("cause-death-category-dropdown", "value"),
         Input("cause-death-area-dropdown", "value"),
+        Input("export-graph-button", "n_clicks"),
     ],
 )
-def update_cause_death_graph(ages, sexes, categories, areas):
+def update_cause_death_graph(start_age, end_age, sexes, categories, areas, export_html):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     df = pd.read_csv(df_path)
     shown_legends = set()
-    ages = ensure_list(ages, "総数(人)")
     sexes = ensure_list(sexes, "男女計")
     areas = ensure_list(areas, "古賀市")
     categories = ensure_list(categories, "総数")
@@ -316,7 +464,6 @@ def update_cause_death_graph(ages, sexes, categories, areas):
     df_filtered = df[
         df["地域"].isin(areas) & df["分類"].isin(categories) & df["性別"].isin(sexes)
     ]
-
     fig = go.Figure()
 
     for area in areas:
@@ -324,30 +471,41 @@ def update_cause_death_graph(ages, sexes, categories, areas):
         for category in categories:
             for sex in sexes:
                 line_style = line_styles[sex]
-                for age in ages:
-                    line_width = widths[area]
-                    df_area_category_sex_age = df_filtered[
-                        (df_filtered["地域"] == area)
-                        & (df_filtered["性別"] == sex)
-                        & (df_filtered["分類"] == category)
-                    ]
-                    y_data = df_area_category_sex_age[age]
-                    y_title = "人数"
-                    y_tickformat = None
-                    graph_legend_name = legend_name(
-                        ages, age, sexes, sex, categories, category, areas, area
+                line_width = widths[area]
+                symbol_size = 10
+                if len(sexes) <= 2 and len(areas) == 1 and categories == "総数":
+                    line_style = "solid"
+                    symbol_size = 5
+                df_area_category_sex_age = df_filtered[
+                    (df_filtered["地域"] == area)
+                    & (df_filtered["性別"] == sex)
+                    & (df_filtered["分類"] == category)
+                ]
+                y_data, ages, age_range = calculate_age_range(
+                    df_area_category_sex_age, start_age, end_age
+                )
+                y_title = "人数"
+                y_tickformat = None
+                graph_legend_name = legend_name(
+                    ages, age_range, sexes, sex, categories, category, areas, area
+                )
+                fig.add_trace(
+                    go.Scatter(
+                        x=df_area_category_sex_age["年度"],
+                        y=y_data["人数"],
+                        mode="lines+markers",
+                        name=graph_legend_name,
+                        line=dict(width=line_width, dash=line_style),
+                        marker=dict(symbol=symbol, size=symbol_size),
+                        hovertemplate=f"性別: {sex}<br>" + "人数: %{y}<br>",
+                        hoverlabel=dict(
+                            font_size=16,
+                            font_family="Roboto",
+                            font=dict(color="black"),
+                        ),
                     )
-                    fig.add_trace(
-                        go.Scatter(
-                            x=df_area_category_sex_age["年度"],
-                            y=y_data,
-                            mode="lines+markers",
-                            name=graph_legend_name,
-                            line=dict(width=line_width, dash=line_style),
-                            marker=dict(symbol=symbol, size=12),
-                        )
-                    )
-    if (len(ages) + len(sexes) + len(areas)) <= 3:
+                )
+    if (len(sexes) <= 2) and (len(areas)) == 1:
         excluded_categories = [
             "ウイルス性肝炎",
             "悪性新生物",
@@ -357,6 +515,10 @@ def update_cause_death_graph(ages, sexes, categories, areas):
             "不慮の事故",
             "自殺",
         ]
+        offset = -0.4
+        width = 0.8
+        if len(sexes) == 2:
+            sex_offset_mapping = {"男性": -0.4, "女性": 0}
 
         for year in df["年度"].unique():
             df_year = df[df["年度"] == year]
@@ -364,75 +526,126 @@ def update_cause_death_graph(ages, sexes, categories, areas):
                 df_area = df_year[df_year["地域"] == area]
                 for sex in sexes:
                     df_sex = df_area[df_area["性別"] == sex]
-                    for age in ages:
-                        if categories == ["総数"]:
-                            df_filtered = (
-                                df_sex.groupby(["分類"])[age].sum().reset_index()
+                    base = 0
+                    if len(sexes) == 2:
+                        offset = sex_offset_mapping.get(sex, 0)
+                        width = 0.4
+                    if categories == ["総数"]:
+                        y_data, ages, age_range = calculate_age_range(
+                            df_sex, start_age, end_age
+                        )
+                        df_filtered = (
+                            y_data.groupby(["分類"])["人数"].sum().reset_index()
+                        )
+                        df_summary = df_filtered[
+                            ~df_filtered["分類"].isin(excluded_categories)
+                            & (df_filtered["人数"] > 0)
+                        ]
+                        total_deaths = y_data[y_data["分類"] == "総数"]["人数"].sum()
+
+                        top_categories = df_summary.sort_values(
+                            by="人数", ascending=False
+                        ).head(5)
+                        top_categories_sorted = top_categories[
+                            top_categories["人数"] > 0
+                        ].sort_values(by="人数", ascending=True)
+                        top_sum = top_categories["人数"].sum()
+                        other_sum = total_deaths - top_sum
+                        if other_sum > 0:
+                            fig.add_trace(
+                                go.Bar(
+                                    x=[year],
+                                    y=[other_sum],
+                                    name="その他",
+                                    marker=dict(color="grey"),
+                                    opacity=0.7,
+                                    offset=offset,
+                                    width=width,
+                                    base=base,
+                                    showlegend="その他" not in shown_legends,
+                                    hovertemplate=f"性別: {sex}<br>" + "人数: %{y}<br>",
+                                    hoverlabel=dict(
+                                        font_size=16,
+                                        font_family="Roboto",
+                                        font=dict(color="black"),
+                                    ),
+                                )
                             )
-                            df_summary = df_filtered[
-                                ~df_filtered["分類"].isin(excluded_categories)
-                                & (df_filtered[age] > 0)
-                            ]
-                            total_deaths = df_sex[df_sex["分類"] == "総数"][age].sum()
+                            base += other_sum
+                            shown_legends.add("その他")
 
-                            top_categories = df_summary.sort_values(
-                                by=age, ascending=False
-                            ).head(5)
-                            top_categories_sorted = top_categories[
-                                top_categories[age] > 0
-                            ].sort_values(by=age, ascending=True)
-                            top_sum = top_categories[age].sum()
-
-                            other_sum = total_deaths - top_sum
-                            if other_sum > 0:
-                                fig.add_trace(
-                                    go.Bar(
-                                        x=[year],
-                                        y=[other_sum],
-                                        name="その他",
-                                        marker=dict(color="grey"),
-                                        opacity=0.7,
-                                        showlegend="その他" not in shown_legends,
-                                    )
+                        for _, row in top_categories_sorted.iterrows():
+                            category = row["分類"]
+                            showlegend = category not in shown_legends
+                            shown_legends.add(category)
+                            number_of_deaths = row["人数"]
+                            fig.add_trace(
+                                go.Bar(
+                                    x=[year],
+                                    y=[number_of_deaths],
+                                    name=category,
+                                    marker=dict(
+                                        color=category_color_mapping.get(
+                                            category, "grey"
+                                        )
+                                    ),
+                                    opacity=0.7,
+                                    offset=offset,
+                                    width=width,
+                                    base=base,
+                                    showlegend=showlegend,
+                                    hovertemplate=f"性別: {sex}<br>人数: {number_of_deaths}<br>",
+                                    hoverlabel=dict(
+                                        font_size=16,
+                                        font_family="Roboto",
+                                        font=dict(color="black"),
+                                    ),
                                 )
-                                shown_legends.add("その他")
-
-                            for _, row in top_categories_sorted.iterrows():
-                                category = row["分類"]
-                                showlegend = category not in shown_legends
-                                shown_legends.add(category)
+                            )
+                            base += row["人数"]
+                    elif len(categories) == 1:
+                        category = categories[0]
+                        df_filtered = df_sex[df_sex["分類"].isin(categories)]
+                        age_columns = [
+                            "10代未満",
+                            "10代",
+                            "20代",
+                            "30代",
+                            "40代",
+                            "60代",
+                            "50代",
+                            "70代",
+                            "80代",
+                            "90代",
+                            "100歳以上",
+                        ]
+                        if year == 2017 and "age_dummy" not in shown_legends:
+                            add_dummy_traces_for_legend(fig, age_columns)
+                            shown_legends.add("age_dummy")
+                        for age_column in age_columns:
+                            y_data = df_filtered[age_column]
+                            if y_data.sum() > 0:
                                 fig.add_trace(
                                     go.Bar(
-                                        x=[year],
-                                        y=[row[age]],
-                                        name=category,
-                                        marker=dict(
-                                            color=category_color_mapping.get(
-                                                category, "grey"
-                                            )
+                                        x=df_filtered["年度"],
+                                        y=y_data,
+                                        name=age_column,
+                                        marker_color=age_color_mapping[age_column],
+                                        opacity=0.7,
+                                        offset=offset,
+                                        width=width,
+                                        base=base,
+                                        showlegend=False,
+                                        hovertemplate=f"性別: {sex}<br>"
+                                        + "人数: %{y}<br>",
+                                        hoverlabel=dict(
+                                            font_size=16,
+                                            font_family="Roboto",
+                                            font=dict(color="black"),
                                         ),
-                                        opacity=0.7,
-                                        showlegend=showlegend,
                                     )
                                 )
-                        elif len(categories) == 1:
-                            category = categories[0]
-                            df_filtered = df_sex[df_sex["分類"].isin(categories)]
-                            age_columns = [
-                                "10代",
-                                "20代",
-                                "30代",
-                                "40代",
-                                "60代",
-                                "50代",
-                                "70代",
-                                "80代",
-                                "90代",
-                                "100歳以上",
-                            ]
-                            if year == 2017:
-                                add_dummy_traces_for_legend(fig, age_columns)
-                            add_stacked_bar_traces(fig, df_filtered, age_columns)
+                            base += y_data
 
     fig.update_layout(
         barmode="stack",
@@ -448,10 +661,12 @@ def update_cause_death_graph(ages, sexes, categories, areas):
             x=1.05,
             y=1,
         ),
-        hovermode="x unified",
+        hovermode="closest",
     )
-
-    return fig
+    if trigger_id == "export-graph-button":
+        html_bytes = fig.to_html().encode("utf-8")
+        return fig, dcc.send_bytes(html_bytes, filename="cause_death_graph.html")
+    return fig, None
 
 
 def add_dummy_traces_for_legend(fig, age_columns):
@@ -466,22 +681,6 @@ def add_dummy_traces_for_legend(fig, age_columns):
                 hoverinfo="none",
             )
         )
-
-
-def add_stacked_bar_traces(fig, df_filtered, age_columns):
-    for age_column in age_columns:
-        y_data = df_filtered[age_column]
-        if y_data.sum() > 0:
-            fig.add_trace(
-                go.Bar(
-                    x=df_filtered["年度"],
-                    y=y_data,
-                    name=age_column,
-                    marker_color=age_color_mapping[age_column],
-                    opacity=0.7,
-                    showlegend=False,
-                )
-            )
 
 
 @callback(
@@ -601,7 +800,8 @@ def download_file(n_clicks, sexes, categories, areas, file_name, zoom_range):
     Output("cause-death-zoom-range-store", "children"),
     [
         Input("cause-death-graph", "relayoutData"),
-        Input("cause-death-age-dropdown", "value"),
+        Input("cause-death-start-age-dropdown", "value"),
+        Input("cause-death-end-age-dropdown", "value"),
         Input("cause-death-sex-type-dropdown", "value"),
         Input("cause-death-category-dropdown", "value"),
         Input("cause-death-area-dropdown", "value"),
@@ -609,7 +809,8 @@ def download_file(n_clicks, sexes, categories, areas, file_name, zoom_range):
 )
 def update_zoom_range_store(
     relayoutData,
-    age,
+    start_age,
+    end_age,
     sex,
     category,
     area,
@@ -623,7 +824,8 @@ def update_zoom_range_store(
     else:
         button_id = ctx.triggered[0]["prop_id"].split(".")[0]
     if (
-        button_id == "cause-death-age-dropdown"
+        button_id == "cause-death-start-age-dropdown"
+        or button_id == "cause-death-end-age-dropdown"
         or button_id == "cause-death-sex-type-dropdown"
         or button_id == "cause-death-category-dropdown"
         or button_id == "cause-death-area-dropdown"
@@ -664,6 +866,7 @@ def filter_df(df, sexes, categories, areas, zoom_range):
 
 
 age_color_mapping = {
+    "10代未満": "#b5e670",  # 若草色
     "10代": "#e377c2",  # ピンク
     "20代": "#7f7f7f",  # グレー
     "30代": "#2ca02c",  # 緑
@@ -683,18 +886,18 @@ category_color_mapping = {
     "Ｂ型ウイルス性肝炎": "#ffbb78",
     "Ｃ型ウイルス性肝炎": "#2ca02c",
     "ヒト免疫不全ウイルス病": "#98df8a",
-    "口唇，口腔及び咽頭の悪性新生": "#d62728",
+    "口唇，口腔及び咽頭の悪性新生物": "#d62728",
     "食道の悪性新生物": "#ff9896",
-    "胃の悪性新生物": "#8820e6",
+    "胃の悪性新生物": "#571fff",
     "結腸の悪性新生物": "#a683d4",
     "直腸Ｓ状結腸移行部及び直腸の悪性新生物": "#8c564b",
     "肝及び肝内胆管の悪性新生物": "#c49c94",
     "胆のう及びその他の胆道の悪性新生物": "#eb6e21",
-    "膵の悪性新生物": "#f7b6d2",
+    "膵の悪性新生物": "#fc62a5",
     "喉頭の悪性新生物": "#7f7f7f",
     "気管，気管支及び肺の悪性新生物": "green",
     "皮膚の悪性新生物": "#bcbd22",
-    "乳房の悪性新生物": "#dbdb8d",
+    "乳房の悪性新生物": "#47edff",
     "子宮の悪性新生物": "#17becf",
     "卵巣の悪性新生物": "#9edae5",
     "前立腺の悪性新生物": "#393b79",
@@ -708,7 +911,7 @@ category_color_mapping = {
     "髄膜炎": "#8c6d31",
     "脊椎性筋縮症及び関連症候群": "#bd9e39",
     "パーキンソン病": "#e7ba52",
-    "アルツハイマー病": "#e7cb94",
+    "アルツハイマー病": "#89e665",
     "高血圧性疾患": "#843c39",
     "慢性リウマチ性心疾患": "#ad494a",
     "急性心筋梗塞": "#d6616b",
@@ -746,3 +949,106 @@ category_color_mapping = {
     "不慮の溺死及び溺水": "#ffff00",  # イエロー
     "自殺": "#7d0000",  # コーラル
 }
+
+
+def add_bar_trace(fig, row, shown_legends):
+    showlegend = row["分類"] not in shown_legends
+    text = f"{row['割合']:.2%}"
+    fig.add_trace(
+        go.Bar(
+            y=[row["年度"]],
+            x=[row["割合"]],
+            name=row["分類"],
+            width=0.5,
+            textposition="inside",
+            text=text,
+            orientation="h",
+            marker=dict(color=category_color_mapping.get(row["分類"], "grey")),
+            opacity=0.7,
+            showlegend=showlegend,
+            hovertemplate=f"割合: {text}<br>",
+            hoverlabel=dict(
+                font_size=16,
+                font_family="Roboto",
+            ),
+        )
+    )
+    if showlegend:
+        shown_legends.add(row["分類"])
+
+
+def add_dummy_trace(fig, row, shown_legends):
+    showlegend = row["分類"] not in shown_legends
+    text = f"{row['割合']:.2%}"
+    fig.add_trace(
+        go.Bar(
+            y=[None],
+            x=[None],
+            name=row["分類"],
+            width=0.5,
+            textposition="inside",
+            text=text,
+            orientation="h",
+            marker=dict(color=category_color_mapping.get(row["分類"], "grey")),
+            opacity=0.7,
+            showlegend=showlegend,
+        )
+    )
+    if showlegend:
+        shown_legends.add(row["分類"])
+
+
+@callback(
+    Output("cancer-stack-graph", "figure"),
+    Output("cancer-stack-graph-col", "style"),
+    [
+        Input("cause-death-start-age-dropdown", "value"),
+        Input("cause-death-end-age-dropdown", "value"),
+        Input("cause-death-sex-type-dropdown", "value"),
+        Input("cause-death-category-dropdown", "value"),
+        Input("cause-death-area-dropdown", "value"),
+    ],
+)
+def update_cancer_stack_graph(start_age, end_age, sex, category, area):
+    sex = ensure_list(sex, "男女計")
+    area = ensure_list(area, "古賀市")
+    fig = go.Figure()
+    cancer_shown_legends = set()
+    if len(area) <= 1 and len(sex) <= 1 and category == ["悪性新生物"]:
+        df = pd.read_csv(df_path)
+        df = df[df["地域"].isin(area) & df["性別"].isin(sex)]
+        malignant_neoplasms = df[
+            df["分類"].str.contains("悪性新生物|悪性リンパ腫|白血病")
+        ]
+        malignant_neoplasms, _, _ = calculate_age_range(
+            malignant_neoplasms, start_age, end_age
+        )
+        filtered_df = add_other_category(malignant_neoplasms, category, "人数")
+        filtered_df = calculate_death_rate(filtered_df, category, "人数")
+        sorted_df = filtered_df.sort_values(
+            by=["年度", "割合"], ascending=[True, False]
+        )
+        sorted_df["IsOther"] = sorted_df["分類"] == "その他"
+        sorted_df = sorted_df.sort_values(
+            by=["年度", "IsOther", "割合"], ascending=[True, True, False]
+        )
+        sorted_df.drop("IsOther", axis=1, inplace=True)
+        for year in sorted_df["年度"].unique():
+            year_data = sorted_df[sorted_df["年度"] == year]
+            add_dummy_traces = year_data.sort_values(by="割合", ascending=True)
+            for _, row in add_dummy_traces.iterrows():
+                add_dummy_trace(fig, row, cancer_shown_legends)
+            for _, row in year_data.iterrows():
+                add_bar_trace(fig, row, cancer_shown_legends)
+
+        fig.update_layout(
+            title="年度別の部位別悪性新生物の割合比較",
+            title_font_size=24,
+            xaxis=dict(title=None, tickformat=".2%"),
+            yaxis=dict(title="年度", title_font=dict(size=20), autorange="reversed"),
+            barmode="stack",
+            legend=dict(orientation="h"),
+        )
+
+        return fig, {"display": "block"}
+    return fig, {"display": "none"}
