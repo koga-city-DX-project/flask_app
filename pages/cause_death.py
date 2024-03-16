@@ -78,7 +78,6 @@ def add_other_category(df, category_column, reference_column="人数"):
     other_df[reference_column] = other_diff.values
     other_df["分類"] = "その他"
     df = pd.concat([df, other_df], ignore_index=True)
-    print(df)
     return df
 
 
@@ -216,7 +215,7 @@ contents = html.Div(
             ]
         ),
     ],
-    style={"height": "200vh"},
+    style={"height": "170vh"},
 )
 
 settings = html.Div(
@@ -1042,13 +1041,14 @@ def update_cancer_stack_graph(start_age, end_age, sex, category, area):
                 add_bar_trace(fig, row, cancer_shown_legends)
 
         fig.update_layout(
-            title="年度別の部位別悪性新生物の割合比較",
+            title="各部位のがん割合の年別比較",
             title_font_size=24,
             xaxis=dict(title=None, tickformat=".2%"),
             yaxis=dict(title="年度", title_font=dict(size=20), autorange="reversed"),
             barmode="stack",
-            legend=dict(orientation="h"),
+            legend=dict(
+                x=0, y=-0.25, xanchor="left", yanchor="bottom", orientation="h"
+            ),
         )
-
         return fig, {"display": "block"}
     return fig, {"display": "none"}
