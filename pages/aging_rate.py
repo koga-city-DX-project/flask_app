@@ -351,6 +351,13 @@ settings = html.Div(
                             is_open=False,
                         ),
                         dcc.Download(id="download-aging-rate"),
+                        dbc.Button(
+                            "HTMLとしてグラフを出力",
+                            id="export-aging-rate-graph-button",
+                            className="text-white setting_button d-flex justify-content-center",
+                            color="secondary",
+                        ),
+                        dcc.Download(id="download-aging-rate-html"),
                     ],
                     className="setting d-grid",
                 ),
@@ -397,14 +404,25 @@ custom_colors = [
 
 
 @callback(
-    Output("aging-rate-graph", "figure"),
+    [
+        Output("aging-rate-graph", "figure"),
+        Output("download-aging-rate-html", "data"),
+    ],
     [
         Input("select-distinction-dropdown", "value"),
         Input("display-area-dropdown", "value"),
         Input("overall_compare-aging-rate-checklist", "value"),
+        Input("export-aging-rate-graph-button", "n_clicks"),
     ],
 )
-def update_graph(selected_distinction, selected_areas, show_overall_aging_rate):
+def update_graph(
+    selected_distinction, selected_areas, show_overall_aging_rate, export_html
+):
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     fig = go.Figure()
     years = sorted(aging_data.keys())
 
@@ -494,7 +512,10 @@ def update_graph(selected_distinction, selected_areas, show_overall_aging_rate):
         hovermode="closest",
         showlegend=True,
     )
-    return fig
+    if trigger_id == "export-aging-rate-graph-button":
+        html_bytes = fig.to_html().encode("utf-8")
+        return fig, dcc.send_bytes(html_bytes, filename="aging_rate_graph.html")
+    return fig, None
 
 
 @callback(

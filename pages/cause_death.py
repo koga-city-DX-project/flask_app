@@ -399,7 +399,7 @@ settings = html.Div(
                         dcc.Download(id="download-cause-death-data"),
                         dbc.Button(
                             "HTMLとしてグラフを出力",
-                            id="export-graph-button",
+                            id="export-cause-death-graph-button",
                             className="text-white setting_button d-flex justify-content-center",
                             color="secondary",
                         ),
@@ -443,7 +443,7 @@ layout = html.Div(
         Input("cause-death-sex-type-dropdown", "value"),
         Input("cause-death-category-dropdown", "value"),
         Input("cause-death-area-dropdown", "value"),
-        Input("export-graph-button", "n_clicks"),
+        Input("export-cause-death-graph-button", "n_clicks"),
     ],
 )
 def update_cause_death_graph(start_age, end_age, sexes, categories, areas, export_html):
@@ -662,7 +662,7 @@ def update_cause_death_graph(start_age, end_age, sexes, categories, areas, expor
         ),
         hovermode="closest",
     )
-    if trigger_id == "export-graph-button":
+    if trigger_id == "export-cause-death-graph-button":
         html_bytes = fig.to_html().encode("utf-8")
         return fig, dcc.send_bytes(html_bytes, filename="cause_death_graph.html")
     return fig, None

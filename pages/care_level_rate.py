@@ -191,6 +191,13 @@ settings = html.Div(
                             is_open=False,
                         ),
                         dcc.Download(id="download-care-level-rate"),
+                        dbc.Button(
+                            "HTMLとしてグラフを出力",
+                            id="export-care-level-graph-button",
+                            className="text-white setting_button d-flex justify-content-center",
+                            color="secondary",
+                        ),
+                        dcc.Download(id="download-care-level-html"),
                     ],
                     className="setting d-grid",
                 ),
@@ -276,16 +283,25 @@ color_map = {
 
 
 @callback(
-    Output("care-level-graph", "figure"),
+    [
+        Output("care-level-graph", "figure"),
+        Output("download-care-level-html", "data"),
+    ],
     [
         Input("care-level-rate-dropdown", "value"),
         Input("care-level-graph-type-dropdown", "value"),
+        Input("export-care-level-graph-button", "n_clicks"),
     ],
 )
-def update_graph(selected_care_levels, selected_graph_type):
+def update_graph(selected_care_levels, selected_graph_type, export_html):
     # process_data(data_directory, file_pattern)
     filepath = "/usr/src/data/save/認定者数0124.csv"
     df = pd.read_csv(filepath, encoding="utf-8")
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
 
     if len(selected_care_levels) != 0:
         df = df[df["二次判定要介護度名"].isin(selected_care_levels)]
@@ -357,8 +373,10 @@ def update_graph(selected_care_levels, selected_graph_type):
         legend_title="介護度名",
         xaxis={"type": "category"},
     )
-
-    return fig
+    if trigger_id == "export-care-level-graph-button":
+        html_bytes = fig.to_html().encode("utf-8")
+        return fig, dcc.send_bytes(html_bytes, filename="care_level_graph.html")
+    return fig, None
 
 
 @callback(

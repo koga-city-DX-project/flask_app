@@ -206,6 +206,13 @@ settings = html.Div(
                             is_open=False,
                         ),
                         dcc.Download(id="download-population-distribution"),
+                        dbc.Button(
+                            "HTMLとしてグラフを出力",
+                            id="export-population_distribution-graph-button",
+                            className="text-white setting_button d-flex justify-content-center",
+                            color="secondary",
+                        ),
+                        dcc.Download(id="download-population-distribution-html"),
                     ],
                     className="setting d-grid",
                 ),
@@ -235,17 +242,28 @@ layout = html.Div(
 
 
 @callback(
-    Output("aging_rate-graph", "figure"),
+    [
+        Output("aging_rate-graph", "figure"),
+        Output("download-population-distribution-html", "data"),
+    ],
     [
         Input("population-age-dropdown", "value"),
         Input("population-sex-type-dropdown", "value"),
         Input("population-area-dropdown", "value"),
         Input("population-aging-rate-checklist", "value"),
         Input("population-comparison-type-dropdown", "value"),
+        Input("export-population_distribution-graph-button", "n_clicks"),
     ],
 )
-def update_population_graph(ages, sexes, areas, aging_rate_visibility, comparison_type):
+def update_population_graph(
+    ages, sexes, areas, aging_rate_visibility, comparison_type, export_html
+):
     df = pd.read_csv(df_path)
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     widths = {"古賀市": 1, "福岡県": 2, "国": 3}
     symbols = {"古賀市": "circle", "福岡県": "square", "国": "diamond"}
     line_styles = {"男性": "solid", "女性": "dot", "男女計": "solid"}
@@ -334,7 +352,12 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
         ),
     )
 
-    return fig
+    if trigger_id == "export-population_distribution-graph-button":
+        html_bytes = fig.to_html().encode("utf-8")
+        return fig, dcc.send_bytes(
+            html_bytes, filename="population_distribution_graph.html"
+        )
+    return fig, None
 
 
 @callback(
