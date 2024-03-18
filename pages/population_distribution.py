@@ -139,7 +139,6 @@ settings = html.Div(
                             options=[
                                 {"label": "男性", "value": "男性"},
                                 {"label": "女性", "value": "女性"},
-                                {"label": "男女計", "value": "男女計"},
                             ],
                             value=[],
                             multi=True,
@@ -154,8 +153,8 @@ settings = html.Div(
                                 {"label": "福岡県", "value": "福岡県"},
                                 {"label": "国", "value": "国"},
                             ],
-                            value=["古賀市", "福岡県", "国"],
-                            placeholder="すべての地域を表示",
+                            value=["古賀市"],
+                            placeholder="古賀市を表示",
                             multi=True,
                             className="setting_dropdown",
                         ),
@@ -272,7 +271,7 @@ def update_population_graph(
     if not sexes:
         sexes = ["男女計"]
     if not areas:
-        areas = ["古賀市", "福岡県", "国"]
+        areas = ["古賀市"]
 
     if not isinstance(ages, list):
         ages = [ages]
@@ -280,6 +279,7 @@ def update_population_graph(
         sexes = [sexes]
     if not isinstance(areas, list):
         areas = [areas]
+    title = f"人口分布の推移(地域: {', '.join(areas)}  性別: {', '.join(sexes)}  年代: {', '.join(ages)})"
 
     df_filtered = df[df["地域"].isin(areas) & df["性別"].isin(sexes)]
 
@@ -288,29 +288,49 @@ def update_population_graph(
         symbol = symbols[area]
         for sex in sexes:
             line_style = line_styles[sex]
-            for age in ages:
-                line_width = widths[area]
-                df_area_sex_age = df_filtered[
-                    (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
-                ]
-                if comparison_type == "rate":
-                    y_data = df_area_sex_age[age] / df_area_sex_age["総数"]
-                    y_title = "割合"
-                    y_tickformat = ".2%"
-                else:
-                    y_data = df_area_sex_age[age]
-                    y_title = "人数"
-                    y_tickformat = None
-                fig.add_trace(
-                    go.Scatter(
-                        x=df_area_sex_age["年度"],
-                        y=y_data,
-                        mode="lines+markers",
-                        name=f"{area} {sex} {age}",
-                        line=dict(width=line_width, dash=line_style),
-                        marker=dict(symbol=symbol, size=12),
+            line_width = widths[area]
+            df_area_sex_age = df_filtered[
+                (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
+            ]
+            if len(areas) == 1 and len(ages) == 1 and comparison_type == "people":
+                for age in ages:
+                    y_data, y_title, y_tickformat = y_settings(
+                        comparison_type, df_area_sex_age, age
                     )
-                )
+                    if len(sexes) == 2:
+                        fig.add_trace(
+                            go.Bar(
+                                x=df_area_sex_age["年度"],
+                                y=y_data,
+                                name=f"{area} {sex} {age}",
+                                offsetgroup=sex,
+                                opacity=0.7,
+                            )
+                        )
+                    else:
+                        fig.add_trace(
+                            go.Bar(
+                                x=df_area_sex_age["年度"],
+                                y=y_data,
+                                name=f"{area} {sex} {age}",
+                                opacity=0.7,
+                            )
+                        )
+            else:
+                for age in ages:
+                    y_data, y_title, y_tickformat = y_settings(
+                        comparison_type, df_area_sex_age, age
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df_area_sex_age["年度"],
+                            y=y_data,
+                            mode="lines+markers",
+                            name=f"{area} {sex} {age}",
+                            line=dict(width=line_width, dash=line_style),
+                            marker=dict(symbol=symbol, size=12),
+                        )
+                    )
 
             if aging_rate_visibility == ["show"]:
                 df_area = df_filtered[
@@ -329,7 +349,7 @@ def update_population_graph(
                 )
 
     fig.update_layout(
-        title="人口分布の推移",
+        title=title,
         title_font_size=24,
         xaxis=dict(title="年度", title_font=dict(size=20)),
         yaxis=dict(
@@ -350,6 +370,7 @@ def update_population_graph(
             x=1.05,
             y=1,
         ),
+        barmode="group",
     )
 
     if trigger_id == "export-population_distribution-graph-button":
@@ -528,3 +549,15 @@ def filter_df(df, sexes, areas, zoom_range, aging_rate_visibility):
             & (df_filtered["年度"] <= float(zoom_range[1]))
         ]
     return df_filtered
+
+
+def y_settings(comparison, df, age):
+    if comparison == "rate":
+        y_data = df[age] / df["総数"]
+        y_title = "割合"
+        y_tickformat = ".2%"
+    else:
+        y_data = df[age]
+        y_title = "人数"
+        y_tickformat = None
+    return y_data, y_title, y_tickformat
