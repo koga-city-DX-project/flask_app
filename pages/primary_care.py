@@ -625,7 +625,7 @@ def update_graph(target_select, ward_select, overall_compare):
                 name=f"全体 要介護認定{opt}",
             )
         )
-        # 後期高齢化率の縦棒グラフを追加
+        # 後期高齢化率の縦棒グラフを 追加
         fig.add_trace(
             go.Bar(
                 x=e_years,
