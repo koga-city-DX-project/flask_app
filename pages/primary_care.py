@@ -452,6 +452,13 @@ settings = html.Div(
                             is_open=False,
                         ),
                         dcc.Download(id="download-primary-care"),
+                        dbc.Button(
+                            "HTMLとしてグラフを出力",
+                            id="export-primary-care-html-button",
+                            className="text-white setting_button d-flex justify-content-center",
+                            color="secondary",
+                        ),
+                        dcc.Download(id="download-primary-care-html"),
                     ],
                     className="setting d-grid",
                 ),
@@ -503,12 +510,18 @@ def update_menu(target_select):
 
 
 @callback(
-    Output("certification_rate_graph", "figure"),
-    Input("target_select", "value"),
-    Input("ward_select", "value"),
-    Input("overall_compare", "value"),
+    [
+        Output("certification_rate_graph", "figure"),
+        Output("download-primary-care-html", "data"),
+    ],
+    [
+        Input("target_select", "value"),
+        Input("ward_select", "value"),
+        Input("overall_compare", "value"),
+        Input("export-primary-care-html-button", "n_clicks"),
+    ],
 )
-def update_graph(target_select, ward_select, overall_compare):
+def update_graph(target_select, ward_select, overall_compare, export_html):
     # グラフを動的に更新するロジック
     # 「全体」「行政区別」「小学校区別」の選択に応じて、異なるデータをグラフに反映させる
     global all_data_rate
@@ -516,6 +529,11 @@ def update_graph(target_select, ward_select, overall_compare):
     ytitle = ""
     tform = ""
     years = sorted(all_data_rate.keys())  # 年度のリスト
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     # 年度ごとにデータを抽出し、グラフを生成
     if target_select == "全体P" or target_select == "全体C":
         if target_select == "全体P":
@@ -682,8 +700,10 @@ def update_graph(target_select, ward_select, overall_compare):
         ),
         barmode="group",
     )
-
-    return fig
+    if trigger_id == "export-primary-care-html-button":
+        html_bytes = fig.to_html().encode("utf-8")
+        return fig, dcc.send_bytes(html_bytes, filename="primary_care_graph.html")
+    return fig, None
 
 
 @callback(

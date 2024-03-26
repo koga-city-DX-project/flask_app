@@ -80,7 +80,7 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         html.Hr(),
-                        html.P("比較方法", className="font-weight-bold option_P"),
+                        html.P("表示形式", className="font-weight-bold option_P"),
                         dcc.Dropdown(
                             id="population-comparison-type-dropdown",
                             options=[
@@ -139,7 +139,6 @@ settings = html.Div(
                             options=[
                                 {"label": "男性", "value": "男性"},
                                 {"label": "女性", "value": "女性"},
-                                {"label": "男女計", "value": "男女計"},
                             ],
                             value=[],
                             multi=True,
@@ -154,8 +153,8 @@ settings = html.Div(
                                 {"label": "福岡県", "value": "福岡県"},
                                 {"label": "国", "value": "国"},
                             ],
-                            value=["古賀市", "福岡県", "国"],
-                            placeholder="すべての地域を表示",
+                            value=["古賀市"],
+                            placeholder="古賀市を表示",
                             multi=True,
                             className="setting_dropdown",
                         ),
@@ -206,6 +205,13 @@ settings = html.Div(
                             is_open=False,
                         ),
                         dcc.Download(id="download-population-distribution"),
+                        dbc.Button(
+                            "HTMLとしてグラフを出力",
+                            id="export-population_distribution-graph-button",
+                            className="text-white setting_button d-flex justify-content-center",
+                            color="secondary",
+                        ),
+                        dcc.Download(id="download-population-distribution-html"),
                     ],
                     className="setting d-grid",
                 ),
@@ -235,17 +241,28 @@ layout = html.Div(
 
 
 @callback(
-    Output("aging_rate-graph", "figure"),
+    [
+        Output("aging_rate-graph", "figure"),
+        Output("download-population-distribution-html", "data"),
+    ],
     [
         Input("population-age-dropdown", "value"),
         Input("population-sex-type-dropdown", "value"),
         Input("population-area-dropdown", "value"),
         Input("population-aging-rate-checklist", "value"),
         Input("population-comparison-type-dropdown", "value"),
+        Input("export-population_distribution-graph-button", "n_clicks"),
     ],
 )
-def update_population_graph(ages, sexes, areas, aging_rate_visibility, comparison_type):
+def update_population_graph(
+    ages, sexes, areas, aging_rate_visibility, comparison_type, export_html
+):
     df = pd.read_csv(df_path)
+    ctx = dash.callback_context
+    if not ctx.triggered:
+        trigger_id = "No clicks yet"
+    else:
+        trigger_id = ctx.triggered[0]["prop_id"].split(".")[0]
     widths = {"古賀市": 1, "福岡県": 2, "国": 3}
     symbols = {"古賀市": "circle", "福岡県": "square", "国": "diamond"}
     line_styles = {"男性": "solid", "女性": "dot", "男女計": "solid"}
@@ -254,7 +271,7 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
     if not sexes:
         sexes = ["男女計"]
     if not areas:
-        areas = ["古賀市", "福岡県", "国"]
+        areas = ["古賀市"]
 
     if not isinstance(ages, list):
         ages = [ages]
@@ -262,6 +279,7 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
         sexes = [sexes]
     if not isinstance(areas, list):
         areas = [areas]
+    title = f"人口分布の推移(地域: {', '.join(areas)}  性別: {', '.join(sexes)}  年代: {', '.join(ages)})"
 
     df_filtered = df[df["地域"].isin(areas) & df["性別"].isin(sexes)]
 
@@ -270,29 +288,49 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
         symbol = symbols[area]
         for sex in sexes:
             line_style = line_styles[sex]
-            for age in ages:
-                line_width = widths[area]
-                df_area_sex_age = df_filtered[
-                    (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
-                ]
-                if comparison_type == "rate":
-                    y_data = df_area_sex_age[age] / df_area_sex_age["総数"]
-                    y_title = "割合"
-                    y_tickformat = ".2%"
-                else:
-                    y_data = df_area_sex_age[age]
-                    y_title = "人数"
-                    y_tickformat = None
-                fig.add_trace(
-                    go.Scatter(
-                        x=df_area_sex_age["年度"],
-                        y=y_data,
-                        mode="lines+markers",
-                        name=f"{area} {sex} {age}",
-                        line=dict(width=line_width, dash=line_style),
-                        marker=dict(symbol=symbol, size=12),
+            line_width = widths[area]
+            df_area_sex_age = df_filtered[
+                (df_filtered["地域"] == area) & (df_filtered["性別"] == sex)
+            ]
+            if len(areas) == 1 and len(ages) == 1 and comparison_type == "people":
+                for age in ages:
+                    y_data, y_title, y_tickformat = y_settings(
+                        comparison_type, df_area_sex_age, age
                     )
-                )
+                    if len(sexes) == 2:
+                        fig.add_trace(
+                            go.Bar(
+                                x=df_area_sex_age["年度"],
+                                y=y_data,
+                                name=f"{area} {sex} {age}",
+                                offsetgroup=sex,
+                                opacity=0.7,
+                            )
+                        )
+                    else:
+                        fig.add_trace(
+                            go.Bar(
+                                x=df_area_sex_age["年度"],
+                                y=y_data,
+                                name=f"{area} {sex} {age}",
+                                opacity=0.7,
+                            )
+                        )
+            else:
+                for age in ages:
+                    y_data, y_title, y_tickformat = y_settings(
+                        comparison_type, df_area_sex_age, age
+                    )
+                    fig.add_trace(
+                        go.Scatter(
+                            x=df_area_sex_age["年度"],
+                            y=y_data,
+                            mode="lines+markers",
+                            name=f"{area} {sex} {age}",
+                            line=dict(width=line_width, dash=line_style),
+                            marker=dict(symbol=symbol, size=12),
+                        )
+                    )
 
             if aging_rate_visibility == ["show"]:
                 df_area = df_filtered[
@@ -311,7 +349,7 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
                 )
 
     fig.update_layout(
-        title="人口分布の推移",
+        title=title,
         title_font_size=24,
         xaxis=dict(title="年度", title_font=dict(size=20)),
         yaxis=dict(
@@ -332,9 +370,15 @@ def update_population_graph(ages, sexes, areas, aging_rate_visibility, compariso
             x=1.05,
             y=1,
         ),
+        barmode="group",
     )
 
-    return fig
+    if trigger_id == "export-population_distribution-graph-button":
+        html_bytes = fig.to_html().encode("utf-8")
+        return fig, dcc.send_bytes(
+            html_bytes, filename="population_distribution_graph.html"
+        )
+    return fig, None
 
 
 @callback(
@@ -505,3 +549,15 @@ def filter_df(df, sexes, areas, zoom_range, aging_rate_visibility):
             & (df_filtered["年度"] <= float(zoom_range[1]))
         ]
     return df_filtered
+
+
+def y_settings(comparison, df, age):
+    if comparison == "rate":
+        y_data = df[age] / df["総数"]
+        y_title = "割合"
+        y_tickformat = ".2%"
+    else:
+        y_data = df[age]
+        y_title = "人数"
+        y_tickformat = None
+    return y_data, y_title, y_tickformat
