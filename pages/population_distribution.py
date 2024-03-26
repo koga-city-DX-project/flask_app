@@ -80,7 +80,7 @@ settings = html.Div(
                             className="font-weight-bold",
                         ),
                         html.Hr(),
-                        html.P("比較方法", className="font-weight-bold option_P"),
+                        html.P("表示形式", className="font-weight-bold option_P"),
                         dcc.Dropdown(
                             id="population-comparison-type-dropdown",
                             options=[
